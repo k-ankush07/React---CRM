@@ -1,53 +1,30 @@
 import { useEffect } from "react";
-import { useUser } from "./Use-auth";
 
 const BASE_URL = "http://localhost:5000";
-const TAB_KEY = "active_tabs_count";
 
-export default function HeartbeatAndAutoLogout() {
-  const { data: user } = useUser();
+export default function SessionTracker() {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(`${BASE_URL}/api/heartbeat`, {
+        method: "POST",
+        credentials: "include",
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
-
-    // Increment active tab count in localStorage
-    let tabs = Number(localStorage.getItem(TAB_KEY) || 0);
-    localStorage.setItem(TAB_KEY, (tabs + 1).toString());
-
-    const handleBeforeUnload = () => {
-      let tabs = Number(localStorage.getItem(TAB_KEY) || 1);
-      tabs = Math.max(tabs - 1, 0);
-      localStorage.setItem(TAB_KEY, tabs.toString());
-
-      // Only logout if this is the last tab
-      if (tabs === 0) {
-        const url = `${BASE_URL}/api/logout`;
-        const data = JSON.stringify({ userId: user.userId });
-
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(url, new Blob([data], { type: "application/json" }));
-        } else {
-          fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: data,
-            keepalive: true,
-          });
-        }
-      }
+    const handleUnload = () => {
+      navigator.sendBeacon(
+        `${BASE_URL}/api/possible-close`,
+        JSON.stringify({ reason: "tab_or_browser_close" })
+      );
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    // Clean up on unmount
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-
-      let tabs = Number(localStorage.getItem(TAB_KEY) || 1);
-      tabs = Math.max(tabs - 1, 0);
-      localStorage.setItem(TAB_KEY, tabs.toString());
-    };
-  }, [user]);
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, []);
 
   return null;
 }
