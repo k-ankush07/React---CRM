@@ -64,13 +64,5 @@ export const api = {
       path: `${BASE_URL}/api/create-user`,
       method: "POST",
     },
-    heartbeat: {
-      path: `${BASE_URL}/api/heartbeat`,
-      method: "POST",
-    },
-    setLastActive: {
-      path: `${BASE_URL}/api/set-last-active`,
-      method: "POST",
-    },
   },
 };
