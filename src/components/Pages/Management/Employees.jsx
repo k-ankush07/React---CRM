@@ -13,8 +13,8 @@ function formatMinutes(minutes = 0) {
 }
 
 // Hook to calculate live minutes for an active session
-function useLiveMinutes(startTime, endTime) {
-  const [minutes, setMinutes] = useState(0);
+function useLiveTime(startTime, endTime) {
+  const [time, setTime] = useState({ minutes: 0, seconds: 0 });
 
   useEffect(() => {
     if (endTime) return;
@@ -22,35 +22,37 @@ function useLiveMinutes(startTime, endTime) {
     function update() {
       const start = new Date(startTime);
       const now = new Date();
-      const diffMin = Math.floor((now - start) / 60000);
-      setMinutes(diffMin);
+      const diffMs = now - start;
+      const minutes = Math.floor(diffMs / 60000);
+      const seconds = Math.floor((diffMs % 60000) / 1000);
+      setTime({ minutes, seconds });
     }
 
-    update();
-    const interval = setInterval(update, 1000 * 60);
+    update(); // run immediately
+    const interval = setInterval(update, 1000); // every second
     return () => clearInterval(interval);
   }, [startTime, endTime]);
 
-  return minutes;
+  return time;
 }
 
 // Session Card
 function SessionCard({ session }) {
-  const liveMinutes = useLiveMinutes(session.startTime, session.endTime);
+  const liveTime = useLiveTime(session.startTime, session.endTime);
 
   return (
     <div className="border border-gray-300 rounded-lg p-4 mb-3 bg-white shadow-sm hover:shadow-md transition">
 
       <div className="flex justify-between items-center mb-2">
         <span className="text-gray-600 font-medium">Login:</span>
-        <span className="text-gray-800 ">
+        <span className="text-gray-800">
           {format(new Date(session.startTime), "HH:mm:ss EEEE dd MMM yyyy")}
         </span>
       </div>
 
       <div className="flex justify-between items-center mb-2">
         <span className="text-gray-600 font-medium">Logout:</span>
-        <span className="text-gray-800 ">
+        <span className="text-gray-800">
           {session.endTime
             ? format(new Date(session.endTime), "HH:mm:ss EEEE dd MMM yyyy")
             : "Active"}
@@ -59,10 +61,10 @@ function SessionCard({ session }) {
 
       <div className="flex justify-between items-center">
         <span className="text-gray-600 font-medium">Duration:</span>
-        <span className="text-blue-600 ">
+        <span className="text-blue-600">
           {session.endTime
             ? formatMinutes(session.durationMinutes ?? 0)
-            : `${formatMinutes(liveMinutes)} (Active)`}
+            : `${liveTime.minutes} min ${liveTime.seconds}s (Active)`}
         </span>
       </div>
     </div>
