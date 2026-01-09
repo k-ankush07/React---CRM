@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import HrLayout from "./HrLayout";
+import RoleBasedLayout from "./RoleBasedLayout";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import ReactQuill from "../ui/RichText";
@@ -156,7 +156,7 @@ export default function HolidaysAndPolicies() {
     }, {});
 
     return (
-        <HrLayout>
+        <RoleBasedLayout >
             <div className="relative h-[90.7vh] bg-gray-50 overflow-hidden">
                 <div className="relative z-20 h-full overflow-y-auto p-6 space-y-8">
                    {isHR && ( <div>
@@ -307,6 +307,6 @@ export default function HolidaysAndPolicies() {
                 </div>
                 {showToast && <SucessToast message={toastMessage} />}
             </div>
-        </HrLayout>
+        </RoleBasedLayout >
     );
 }

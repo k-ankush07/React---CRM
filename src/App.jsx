@@ -7,7 +7,7 @@ import Projects from "./components/Pages/Projects";
 import TimeTracker from "./components/Pages/Employees/TimeTracker";
 import EmployeeProject from "./components/Pages/Employees/EmployeeProject";
 import { useUser } from "./components/Use-auth";
-import Employees from "./components/Pages/Management/Employees";
+import Employees from "./components/Pages/TrackerEmployees";
 import Account from "./components/Pages/Account";
 import { DateRangeProvider } from "./components/Pages/DateRangeContext";
 import ResetPassword from "./components/Pages/ResetPassword";

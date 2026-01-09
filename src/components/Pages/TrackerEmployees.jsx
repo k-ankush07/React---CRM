@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import ManagementLayout from "../ManagementLayout";
-import { useUserDetails } from "../../Use-auth";
+import { useUserDetails } from "../Use-auth";
 import { format } from "date-fns";
-import MonthlyCalendar from "../../ui/MonthlyCalendar";
-import { useDateRange } from "../DateRangeContext";
+import MonthlyCalendar from "../ui/MonthlyCalendar";
+import { useDateRange } from "./DateRangeContext";
+import RoleBasedLayout from "./RoleBasedLayout";
 
 function formatMinutes(minutes = 0) {
   if (!minutes || minutes < 60) return `${minutes} min`;
@@ -162,7 +162,7 @@ export default function Employees() {
   }
 
   return (
-    <ManagementLayout>
+    <RoleBasedLayout>
       <div className="relative h-[90.7vh] overflow-hidden">
         <div className="absolute w-full h-[100%] opacity-[0.2] bg-[url('https://www.hubsyntax.com/uploads/clock-wise.jpeg')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"></div>
         <div className="relative z-20 h-full overflow-y-auto p-6">
@@ -320,6 +320,6 @@ export default function Employees() {
           </div>
         </div>
       </div>
-    </ManagementLayout>
+    </RoleBasedLayout>
   );
 }

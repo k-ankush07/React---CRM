@@ -123,7 +123,6 @@ export default function Account() {
   return (
     <div className="flex min-h-screen bg-background/50">
       <Sidebar />
-
       <div className="flex-1 bg-[#FFFF]">
         <div>
           <Dashboard />
