@@ -13,16 +13,17 @@ export function Sidebar() {
 
   const links = [
     {
-      href: user.role === 'admin' ? '/admin' : user.role === 'management' ? '/management' : '/dashboard',
-      label: 'Dashboard',
+      href: user.role === "admin" ? "/admin" : user.role === "management" ? "/management" : user.role === "hr" ? "/hr-dashboard" : "/dashboard",
+      label: "Dashboard",
       icon: LayoutDashboard,
-      roles: ['admin', 'management', 'employee']
+      roles: ["admin", "management", "employee", "hr"],
     },
-    { href: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'management'] },
+    { href: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'management', 'hr'] },
     { href: '/projects', label: 'Projects', icon: FolderGit, roles: ['admin', 'management'] },
     { href: '/time-tracker', label: 'Time Tracker', icon: Clock, roles: ['employee'] },
     { href: '/project', label: 'Projects', icon: FolderGit, roles: ['employee'] },
-    { href: '/account', label: 'Account', icon: CircleUserRound, roles: ['admin', 'management', 'employee'] },
+    { href: '/account', label: 'Account', icon: CircleUserRound, roles: ['admin', 'management', 'employee', 'hr'] },
+    { href: '/holidays-and-policies', label: 'Holidays & Policies', icon: CircleUserRound, roles: ['hr'] },
   ];
 
   const filteredLinks = links.filter(link => link.roles.includes(user.role));

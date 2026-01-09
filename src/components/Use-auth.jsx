@@ -248,6 +248,25 @@ export function useCreateUser() {
   });
 }
 
+export function useHoliday() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body) => {
+      const res = await fetch(api.auth.holiday.path, {
+        method: api.auth.holiday.method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create holiday");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["holidays"]),
+  });
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({

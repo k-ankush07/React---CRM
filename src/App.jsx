@@ -12,6 +12,8 @@ import Account from "./components/Pages/Account";
 import { DateRangeProvider } from "./components/Pages/DateRangeContext";
 import ResetPassword from "./components/Pages/ResetPassword";
 import HeartbeatAndAutoLogout from "./components/HeartbeatAndAutoLogout";
+import HrDashBoard from "./components/Pages/Hr/HrDashBoard";
+import HolidaysAndPolicies from "./components/Pages/Hr/Holidays & Policies";
 import NotFound from "./components/Pages/not-found";
 
 function ProtectedRoute({ component: Component, allowedRoles }) {
@@ -24,6 +26,7 @@ function ProtectedRoute({ component: Component, allowedRoles }) {
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === "admin") return <Redirect to="/admin" />;
     if (user.role === "management") return <Redirect to="/management" />;
+    if (user.role === "hr") return <Redirect to="/hr-dashboard" />;
     return <Redirect to="/dashboard" />;
   }
 
@@ -68,7 +71,12 @@ function App() {
               allowedRoles={["management"]}
             />
           </Route>
-
+          <Route path="/hr-dashboard">
+            <ProtectedRoute
+              component={HrDashBoard}
+              allowedRoles={["hr"]}
+            />
+          </Route>
           <Route path="/dashboard">
             <ProtectedRoute
               component={EmployeeDashboard}
@@ -99,13 +107,19 @@ function App() {
           <Route path="/employees">
             <ProtectedRoute
               component={Employees}
-              allowedRoles={["admin", "management"]}
+              allowedRoles={["admin", "management","hr"]}
             />
           </Route>
           <Route path="/account">
             <ProtectedRoute
               component={Account}
-              allowedRoles={["admin", "management", "employee"]}
+              allowedRoles={["admin", "management", "employee", "hr"]}
+            />
+          </Route>
+          <Route path="/holidays-and-policies">
+            <ProtectedRoute
+              component={HolidaysAndPolicies}
+              allowedRoles={["hr"]}
             />
           </Route>
           <Route path="/reset-password/:token" component={ResetPassword} />

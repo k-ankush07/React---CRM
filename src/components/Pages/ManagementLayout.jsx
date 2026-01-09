@@ -2,8 +2,6 @@ import { Sidebar } from "../SideBar";
 import Dashboard from "../ui/Dashboard";
 
 export default function ManagementLayout({ children }) {
-
-
   return (
     <div className="flex min-h-screen bg-background/50">
       <Sidebar />

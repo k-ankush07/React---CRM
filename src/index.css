@@ -172,3 +172,41 @@ body {
 .date-popup {
     align-items: baseline;
 }
+
+.custom-quill-container {
+  border: 1px solid #d1d5db; 
+  border-radius: 0.5rem; 
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.custom-quill-container:focus-within {
+  border-color: #fbe5e9; 
+  box-shadow: 0 0 0 2px rgba(251, 229, 233, 0.3);
+}
+
+.custom-quill-editor .ql-editor {
+  min-height: 8rem; 
+  font-size: 0.875rem; 
+  line-height: 1.5rem;
+  padding: 0.75rem; 
+}
+.custom-quill-editor .ql-toolbar {
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  padding: 0.25rem 0.5rem;
+}
+
+.custom-quill-editor .ql-toolbar .ql-picker-label:hover,
+.custom-quill-editor .ql-toolbar button:hover {
+  background-color: #fdf9fb; 
+}
+
+.custom-quill-editor .ql-toolbar .ql-active {
+  background-color: #fbe5e9; 
+}
+
+.custom-quill-editor .ql-editor.ql-blank::before {
+  color: #9ca3af; 
+  font-style: italic;
+}

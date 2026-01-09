@@ -64,5 +64,9 @@ export const api = {
       path: `${BASE_URL}/api/create-user`,
       method: "POST",
     },
+    holiday: {
+      path: `${BASE_URL}/api/holiday`,
+      method: "POST",
+    },
   },
 };
