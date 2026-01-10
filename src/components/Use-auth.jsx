@@ -346,3 +346,37 @@ export function useDeleteTask() {
     },
   });
 }
+
+export function useCreateContracts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await fetch(api.auth.contracts.create.path, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create contract");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["contracts"]),
+  });
+}
+
+export function useTotalContracts() {
+  return useQuery({
+    queryKey: ["contracts"],
+    queryFn: async () => {
+      const res = await fetch(api.auth.contracts.list.path, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch contracts");
+      return res.json();
+    },
+  });
+}

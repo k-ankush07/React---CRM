@@ -2,6 +2,7 @@ import { Router, Route, Redirect, Switch } from "wouter";
 import Login from "./components/Pages/Login";
 import AdminDashboard from "./components/Pages/Admin/AdminDashboard";
 import ManagementDashboard from "./components/Pages/Management/ManagementDashboard";
+import Transactions from "./components/Pages/Management/Transactions";
 import EmployeeDashboard from "./components/Pages/Employees/EmployeeDashboard";
 import Projects from "./components/Pages/Projects";
 import TimeTracker from "./components/Pages/Employees/TimeTracker";
@@ -71,6 +72,12 @@ function App() {
               allowedRoles={["management"]}
             />
           </Route>
+           <Route path="/transactions">
+            <ProtectedRoute
+              component={Transactions}
+              allowedRoles={["management"]}
+            />
+          </Route>
           <Route path="/hr-dashboard">
             <ProtectedRoute
               component={HrDashBoard}
@@ -116,7 +123,7 @@ function App() {
               allowedRoles={["admin", "management", "employee", "hr"]}
             />
           </Route>
-          <Route path="/holidays-and-policies">
+          <Route path="/policies">
             <ProtectedRoute
               component={HolidaysAndPolicies}
                allowedRoles={["admin", "management", "employee", "hr"]}

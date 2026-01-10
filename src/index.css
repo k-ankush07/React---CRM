@@ -210,3 +210,103 @@ body {
   color: #9ca3af; 
   font-style: italic;
 }
+
+.daterangepicker {
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff; 
+  border-radius: 0.5rem; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+  border: 1px solid #e5e7eb; 
+  z-index: 9999 !important; 
+}
+
+.daterangepicker .drp-calendar {
+  border: none; 
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+}
+
+.daterangepicker .drp-calendar th {
+  color: #6b7280; 
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.daterangepicker td.available {
+  color: #111827;
+  font-weight: 500;
+}
+
+.daterangepicker td.available:hover {
+  background-color: #e0f2fe; 
+  border-radius: 0.25rem;
+}
+
+.daterangepicker td.active,
+.daterangepicker td.start-date,
+.daterangepicker td.end-date {
+  background-color: #0f8a00 !important;
+  color: #ffffff !important;
+  border-radius: 0.25rem;
+}
+
+.daterangepicker .ranges li {
+  color: #111827;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.daterangepicker .ranges li:hover {
+  background-color: #f3f4f6; 
+  color: #0f8a00; 
+}
+
+.daterangepicker .drp-buttons .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+}
+
+.daterangepicker .drp-buttons .applyBtn {
+  background-color: #0f8a00; 
+  color: #ffffff;
+  border: none;
+}
+
+.daterangepicker .drp-buttons .applyBtn:hover {
+  background-color: #0c6e00;
+}
+
+.daterangepicker .drp-buttons .cancelBtn {
+  background-color: #f3f4f6; 
+  color: #111827;
+  border: none;
+}
+
+.daterangepicker .drp-buttons .cancelBtn:hover {
+  background-color: #e5e7eb;
+}
+
+.daterangepicker .drp-inputs input {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  width: 120px;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.daterangepicker .calendar-table .prev,
+.daterangepicker .calendar-table .next {
+  color: #0f8a00;
+  font-size: 1rem;
+}
+
+.daterangepicker .calendar-table .prev:hover,
+.daterangepicker .calendar-table .next:hover {
+  color: #0c6e00;
+}

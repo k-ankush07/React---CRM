@@ -76,5 +76,12 @@ export const api = {
         method: "DELETE",
       }),
     },
+    contracts: {
+      create: {
+        path: `${BASE_URL}/api/contracts`,
+        method: "POST",
+      },
+      list: { path: `${BASE_URL}/api/contracts`, method: "GET" }
+    },
   },
 };
