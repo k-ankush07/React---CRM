@@ -6,6 +6,7 @@ import ReactQuill from "../ui/RichText";
 import { useHoliday, useTotalHolidays, useUpdateHoliday, useDeleteHoliday, useUser } from "../Use-auth";
 import SucessToast from "../ui/SucessToast";
 import { Pencil, Trash2 } from "lucide-react";
+import { useDateRange } from "./DateRangeContext";
 
 export default function HolidaysAndPolicies() {
     const [form, setForm] = useState({
@@ -25,7 +26,8 @@ export default function HolidaysAndPolicies() {
     const [toastMessage, setToastMessage] = useState("");
     const [editingIndex, setEditingIndex] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
-   
+    const { start, end } = useDateRange();
+
     const isHR = user?.role === "hr";
     // Fetch existing holidays on mount
     useEffect(() => {
@@ -140,18 +142,19 @@ export default function HolidaysAndPolicies() {
         });
     };
 
-    const holidaysByMonth = holidays.reduce((acc, holiday) => {
+    const filteredHolidays = holidays.filter((holiday) => {
+        if (!start || !end) return true;
+        const holidayDate = new Date(holiday.date);
+        return holidayDate >= start && holidayDate <= end;
+    });
+
+    const holidaysByMonth = filteredHolidays.reduce((acc, holiday) => {
         const date = new Date(holiday.date);
-        const monthKey = date.toLocaleString("default", {
-            month: "long",
-            year: "numeric",
-        });
+        const monthKey = date.toLocaleString("default", { month: "long", year: "numeric" });
 
-        if (!acc[monthKey]) {
-            acc[monthKey] = [];
-        }
-
+        if (!acc[monthKey]) acc[monthKey] = [];
         acc[monthKey].push(holiday);
+
         return acc;
     }, {});
 
@@ -159,7 +162,7 @@ export default function HolidaysAndPolicies() {
         <RoleBasedLayout >
             <div className="relative h-[90.7vh] bg-gray-50 overflow-hidden">
                 <div className="relative z-20 h-full overflow-y-auto p-6 space-y-8">
-                   {isHR && ( <div>
+                    {isHR && (<div>
                         <Button onClick={() => setShowPopup(true)} className="flex items-center justify-center gap-2 mb-[10px] px-4 py-2 rounded-lg text-black bg-[#fbe5e9] hover:bg-[#fdf9fb] shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200" >
                             Add New Holiday & Policy </Button>
                         {showPopup && (

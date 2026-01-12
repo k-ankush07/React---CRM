@@ -53,6 +53,30 @@ function HomeRedirect() {
   }
 }
 
+function PublicRoute({ component: Component }) {
+  const { data: user, isLoading } = useUser();
+
+  if (isLoading) return <div></div>; 
+
+  if (user) {
+    switch (user.role) {
+      case "admin":
+        return <Redirect to="/admin" />;
+      case "management":
+        return <Redirect to="/management" />;
+      case "hr":
+        return <Redirect to="/hr-dashboard" />;
+      case "employee":
+        return <Redirect to="/dashboard" />;
+      default:
+        return <Redirect to="/" />;
+    }
+  }
+
+  return <Component />;
+}
+
+
 function App() {
 
   return (
@@ -60,7 +84,9 @@ function App() {
       <HeartbeatAndAutoLogout />
       <Router>
         <Switch>
-          <Route path="/login" component={Login} />
+          <Route path="/login">
+            <PublicRoute component={Login} />
+          </Route>
 
           <Route path="/admin">
             <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />
@@ -72,7 +98,7 @@ function App() {
               allowedRoles={["management"]}
             />
           </Route>
-           <Route path="/transactions">
+          <Route path="/transactions">
             <ProtectedRoute
               component={Transactions}
               allowedRoles={["management"]}
@@ -126,7 +152,7 @@ function App() {
           <Route path="/policies">
             <ProtectedRoute
               component={HolidaysAndPolicies}
-               allowedRoles={["admin", "management", "employee", "hr"]}
+              allowedRoles={["admin", "management", "employee", "hr"]}
             />
           </Route>
           <Route path="/reset-password/:token" component={ResetPassword} />

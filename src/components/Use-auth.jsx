@@ -380,3 +380,37 @@ export function useTotalContracts() {
     },
   });
 }
+
+export function useUpdateContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }) => {
+      const res = await fetch(api.auth.contracts.update.path(id), {
+        method: api.auth.contracts.update.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update contract");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["contracts"]),
+  });
+}
+
+export function useDeleteContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(api.auth.contracts.delete.path(id), {
+        method: api.auth.contracts.delete.method,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete contract");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["contracts"]),
+  });
+}

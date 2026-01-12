@@ -81,7 +81,15 @@ export const api = {
         path: `${BASE_URL}/api/contracts`,
         method: "POST",
       },
-      list: { path: `${BASE_URL}/api/contracts`, method: "GET" }
+      list: { path: `${BASE_URL}/api/contracts`, method: "GET" },
+      update: {
+        path: (id) => `${BASE_URL}/api/contracts/${id}`,
+        method: "PUT",
+      },
+      delete: {
+        path: (id) => `${BASE_URL}/api/contracts/${id}`,
+        method: "DELETE",
+      },
     },
   },
 };

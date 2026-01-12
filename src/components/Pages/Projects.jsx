@@ -9,7 +9,7 @@ import TaskPriority from "../ui/TaskPriority";
 import TaskEmployees from "../ui/TaskEmployees";
 import { useDateRange } from "./DateRangeContext";
 import {
-  Calendar, Plus, CircleCheck, Trash, Copy, Flag, CircleStop, Users, GripVertical, X, SendHorizontal,CircleDot 
+  Calendar, Plus, CircleCheck, Trash, Copy, Flag, CircleStop, Users, GripVertical, X, SendHorizontal, CircleDot
 } from "lucide-react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, } from "@dnd-kit/core";
 import {
@@ -73,10 +73,13 @@ export default function Projects() {
   const [showAddProjectInput, setShowAddProjectInput] = useState(false);
   const [editData, setEditData] = useState({
     title: "",
-    description: "",
+    description: [
+      { taskLinks: [""], storeLink: "", referenceLink: "", figmaLink: "", taskdescription: [""], }
+    ],
     priority: "",
-    dueDate: null,
+    status: "upcoming",
     assignedEmployees: [],
+    dueDate: null
   });
 
   const [showDatePicker, setShowDatePicker] = useState(null);
@@ -86,7 +89,6 @@ export default function Projects() {
 
   // Refs
   const addTaskRef = useRef(null);
-  const descriptionRef = useRef(null);
   const statusRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -456,13 +458,38 @@ export default function Projects() {
       return;
     }
 
+    const formattedDescription = Array.isArray(editData.description)
+      ? editData.description.map((desc, idx) => {
+        const formatted = {
+          taskLinks: Array.isArray(desc.taskLinks) ? desc.taskLinks : [],
+          storeLink: desc.storeLink || "",
+          referenceLink: desc.referenceLink || "",
+          figmaLink: desc.figmaLink || "",
+          taskdescription: Array.isArray(desc.taskdescription) ? desc.taskdescription : [],
+        };
+
+        console.log(`Formatted description[${idx}]:`, formatted);
+        return formatted;
+      })
+      : [
+        {
+          taskLinks: [],
+          storeLink: "",
+          referenceLink: "",
+          figmaLink: "",
+        },
+      ];
+
+    console.log("Full formattedDescription:", formattedDescription);
     const newComments = generateComments(currentTask, editData, currentUser);
+    console.log("New comments:", newComments);
+
     updateProject.mutate(
       {
         id: currentTask.projectId,
         taskId: currentTask._id,
         taskTitle: editData.title,
-        description: editData.description,
+        description: formattedDescription,
         priority: editData.priority,
         status: editData.status,
         dueDate: editData.dueDate
@@ -486,6 +513,7 @@ export default function Projects() {
       }
     );
   }, [currentTask, editData, currentUser, generateComments, updateProject, refetch]);
+
 
   // choose task  in checkbox//
   const toggleTaskSelection = useCallback((status, taskId) => {
@@ -1014,38 +1042,6 @@ export default function Projects() {
     ]
   );
 
-  useEffect(() => {
-    if (showDescriptionPopup && descriptionRef.current) {
-      descriptionRef.current.innerHTML = editData.description || "";
-    }
-  }, [showDescriptionPopup, currentTask]);
-
-  function insertHTMLAtCursor(html) {
-    const sel = window.getSelection();
-    if (!sel.rangeCount) return;
-
-    const range = sel.getRangeAt(0);
-    range.deleteContents();
-
-    const el = document.createElement("div");
-    el.innerHTML = html;
-
-    const frag = document.createDocumentFragment();
-    let node, lastNode;
-
-    while ((node = el.firstChild)) lastNode = frag.appendChild(node);
-
-    range.insertNode(frag);
-
-    if (lastNode) {
-      const newRange = range.cloneRange();
-      newRange.setStartAfter(lastNode);
-      newRange.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
-    }
-  }
-
   //handleTaskAdd create new task //
   const handleTaskAdd = useCallback(() => {
     if (!projectName.trim()) {
@@ -1115,7 +1111,7 @@ export default function Projects() {
                 className="text-gray-500 underline text-sm cursor-pointer hover:text-gray-700 absolute top-[3px] right-[3px]"
                 onClick={() => setShowAddProjectInput(false)}
               >
-                <X/>
+                <X />
               </div>
             </div>
           </div>
@@ -1136,6 +1132,15 @@ export default function Projects() {
       handleTaskAdd,
     ]
   );
+
+  useEffect(() => {
+    setEditData((prev) => ({
+      ...prev,
+      description: Array.isArray(prev.description) ? prev.description : [
+        { taskLinks: [""], storeLink: "", referenceLink: "", figmaLink: "", taskdescription: [""] }
+      ],
+    }));
+  }, []);
 
   if (isLoading) return <p className="p-6">Loading employees...</p>;
   if (error)
@@ -1173,161 +1178,159 @@ export default function Projects() {
                       rows={1}
                       placeholder="Enter text..."
                     />
-                    <div>
-                      <div className="flex items-center gap-[50px] mb-4">
-                        <span className="flex items-center gap-[5px] min-w-[150px]">
-                          <CircleStop size={16} />
-                          <span className="font-medium text-gray-700">
-                            Status
-                          </span>
-                        </span>
-                        <span
-                          className={`px-2 py-1 rounded text-sm font-semibold uppercase ${statusColors[editData.status] ||
-                            "bg-gray-300 text-gray-800"
-                            }`}
-                        >
-                          {editData.status || "-"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-[50px] mb-4 date-popup">
-                        <span className="flex items-center gap-[5px] min-w-[150px]">
-                          <Calendar size={16} />
-                          <span className="font-medium text-gray-700">
-                            Dates
-                          </span>
-                        </span>
-                        <div className="relative date-filter">
-                          <div
-                            className="w-full border rounded px-2 py-1 cursor-pointer hover:bg-gray-50"
-                            onClick={() => setShowDatePicker("edit")}
-                          >
-                            {editData.dueDate
-                              ? new Date(editData.dueDate).toLocaleDateString()
-                              : "Select due date"}
-                          </div>
-                          {showDatePicker === "edit" && (
-                            <SmartDatePicker
-                              open={true}
-                              setOpen={() => setShowDatePicker(null)}
-                              selected={
-                                editData.dueDate
-                                  ? new Date(editData.dueDate)
-                                  : null
-                              }
-                              setSelected={(d) => {
-                                setEditData((prev) => ({
-                                  ...prev,
-                                  dueDate: d,
-                                }));
-                                setShowDatePicker(null);
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-[50px] mb-4">
-                        <span className="flex items-center gap-[5px] min-w-[150px]">
-                          <Flag size={16} />
-                          <span className="font-medium text-gray-700">
-                            Priority
-                          </span>
-                        </span>
-                        <div className="relative">
-                          <TaskPriority
-                            value={editData.priority}
-                            onChange={(level) =>
-                              setEditData((d) => ({
-                                ...d,
-                                priority: level,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-[50px] mb-4">
-                        <span className="flex items-center gap-[5px] min-w-[150px]">
-                          <Users size={16} />
-                          <span className="font-medium text-gray-700">
-                            Assigned
-                          </span>
-                        </span>
-                        <div className="relative flex items-center gap-[10px]">
-                          <TaskEmployees
-                            selected={editData.assignedEmployees}
-                            onChange={(arr) =>
-                              setEditData((d) => ({
-                                ...d,
-                                assignedEmployees: arr,
-                              }))
-                            }
-                            employees={employees}
-                          />
-                          {editData.assignedEmployees
-                            .map(
-                              (id) =>
-                                employees.find((e) => e._id === id)?.fullName ||
-                                employees.find((e) => e._id === id)?.username
-                            )
-                            .filter(Boolean)
-                            .join(", ")}
-                        </div>
-                      </div>
-                    </div>
+
                     <div className="w-full mx-auto mt-10">
-                      <h3 className="text-sm mb-2 font-medium">
-                        Task Description
-                      </h3>
-                      <div
-                        ref={descriptionRef}
-                        contentEditable
-                        className="w-full px-2 py-1 text-[16px] border-t border-b border-gray-400 outline-none focus:bg-blue-50  max-h-64 overflow-y-auto"
-                        data-placeholder="Write description here..."
-                        suppressContentEditableWarning
-                        onInput={() => {
-                          setEditData((d) => ({
-                            ...d,
-                            description:
-                              descriptionRef.current.innerHTML,
-                          }));
-                        }}
-                        onPaste={(e) => {
-                          e.preventDefault();
-                          const items = e.clipboardData.items;
+                      <h3 className="text-sm mb-2 font-medium">Task Details</h3>
+                      {editData.description && (
+                        <div className="mb-4">
+                          {editData.description?.map((desc, idx) => (
+                            <div key={idx} className="mb-2">
+                              <label className="text-gray-600 text-sm mb-1 block">Task Links</label>
+                              {desc.taskLinks.map((link, linkIdx) => (
+                                <div key={linkIdx} className="flex gap-2 items-center mb-1">
+                                  <input
+                                    type="text"
+                                    className="flex-1 border rounded px-2 py-1 text-[14px]"
+                                    value={link}
+                                    placeholder="Enter task link..."
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditData((prev) => ({
+                                        ...prev,
+                                        description: prev.description.map((d, dIdx) =>
+                                          dIdx === idx
+                                            ? {
+                                              ...d,
+                                              taskLinks: d.taskLinks.map((l, lIdx) =>
+                                                lIdx === linkIdx ? value : l
+                                              ),
+                                            }
+                                            : d
+                                        ),
+                                      }));
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditData((prev) => ({
+                                        ...prev,
+                                        description: prev.description.map((d, dIdx) =>
+                                          dIdx === idx
+                                            ? {
+                                              ...d,
+                                              taskLinks: d.taskLinks.filter((_, lIdx) => lIdx !== linkIdx),
+                                            }
+                                            : d
+                                        ),
+                                      }));
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    description: prev.description.map((d, dIdx) =>
+                                      dIdx === idx
+                                        ? { ...d, taskLinks: [...d.taskLinks, ""] }
+                                        : d
+                                    ),
+                                  }));
+                                }}
+                                className="text-blue-500 text-sm mt-1"
+                              >
+                                + Add Link
+                              </button>
+                            </div>
+                          ))}
 
-                          for (let item of items) {
-                            if (item.type.indexOf("image") !== -1) {
-                              const file = item.getAsFile();
-                              const reader = new FileReader();
+                          {(editData.description[0]?.taskdescription || []).map((desc, idx) => (
+                            <div key={idx} className="mb-2">
+                              <label className="text-gray-600 text-sm block">Task Description {idx + 1}</label>
+                              <input
+                                type="text"
+                                className="w-full border rounded px-2 py-1 text-[14px]"
+                                value={desc}
+                                onChange={(e) => {
+                                  const newTaskDesc = [...(editData.description[0]?.taskdescription || [])];
+                                  newTaskDesc[idx] = e.target.value;
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    description: [
+                                      { ...prev.description[0], taskdescription: newTaskDesc },
+                                    ],
+                                  }));
+                                }}
+                              />
+                            </div>
+                          ))}
 
-                              reader.onload = (ev) => {
-                                insertHTMLAtCursor(
-                                  `<img src="${ev.target.result}" style="max-width:100%;border-radius:10px;" />`
-                                );
-
-                                setEditData((d) => ({
-                                  ...d,
-                                  description:
-                                    descriptionRef.current.innerHTML,
-                                }));
-                              };
-
-                              reader.readAsDataURL(file);
-                            } else if (item.type === "text/plain") {
-                              item.getAsString((text) => {
-                                insertHTMLAtCursor(
-                                  text.replace(/\n/g, "<br/>")
-                                );
-
-                                setEditData((d) => ({
-                                  ...d,
-                                  description:
-                                    descriptionRef.current.innerHTML,
-                                }));
-                              });
-                            }
-                          }
-                        }}
-                      />
+                          <div className="mt-2 space-y-2">
+                            <div>
+                              <label className="text-gray-600 text-sm block">Store Link</label>
+                              <input
+                                type="text"
+                                className="w-full border rounded px-2 py-1 text-[14px]"
+                                value={editData.description[0]?.storeLink || ""}
+                                onChange={(e) =>
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    description: [
+                                      {
+                                        ...prev.description[0],
+                                        storeLink: e.target.value,
+                                      },
+                                    ],
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-gray-600 text-sm block">Reference Link</label>
+                              <input
+                                type="text"
+                                className="w-full border rounded px-2 py-1 text-[14px]"
+                                value={editData.description[0]?.referenceLink || ""}
+                                onChange={(e) =>
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    description: [
+                                      {
+                                        ...prev.description[0],
+                                        referenceLink: e.target.value,
+                                      },
+                                    ],
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label className="text-gray-600 text-sm block">Figma Link</label>
+                              <input
+                                type="text"
+                                className="w-full border rounded px-2 py-1 text-[14px]"
+                                value={editData.description[0]?.figmaLink || ""}
+                                onChange={(e) =>
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    description: [
+                                      {
+                                        ...prev.description[0],
+                                        figmaLink: e.target.value,
+                                      },
+                                    ],
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <button
                       className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold transition-colors"
@@ -1336,141 +1339,10 @@ export default function Projects() {
                       <X size={18} />
                     </button>
                   </div>
-                  <div className="w-[30%]">
-                    <div className="p-[20px] border-b border-gray-400 text-sm font-medium">
-                      Activity
-                    </div>
-                    <div className="p-[20px] text-[12px] bg-[#f9f9f9]">
-                      <CommentsSection comments={editData.comments || []} />
-                      <div className="flex gap-2 mt-2">
-                        <Input
-                          type="text"
-                          className="flex-1 outline-none border border-gray-300 rounded px-3 py-2 focus:border-blue-500"
-                          placeholder="Add a comment"
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              handleAddComment();
-                            }
-                          }}
-                        />
-                        <div>
-                          <TaskEmployees
-                            employees={employees}
-                            selected={commentEmployees}
-                            onChange={(arr) => {
-                              setCommentEmployees(arr);
-                            }}
-                            className="comment-dropdown"
-                          />
-                        </div>
-                        <button
-                          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors flex justify-center h-[35px] w-[35px]"
-                          onClick={handleAddComment}
-                        >
-                          <SendHorizontal size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           )}
-
-          <div
-            className={`
-          fixed bottom-4 left-1/2 -translate-x-[40%] w-[100%] max-w-6xl 
-          p-3 bg-[#202020] text-white text-[14px] font-light border rounded gap-4
-          transition-transform duration-300 ease-in-out
-          ${allSelectedTasks.length > 0
-                ? "translate-y-0 opacity-100"
-                : "translate-y-[120%] opacity-0 pointer-events-none"
-              }
-          `}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[14px]">
-                {allSelectedTasks.length} Task
-                {allSelectedTasks.length > 1 ? "s" : ""} selected
-              </span>
-              <div className="flex items-center gap-[10px]" ref={statusRef}>
-                <div className="px-2 py-1 cursor-pointer flex items-center gap-[5px] relative">
-                  <div
-                    className="flex items-center gap-[5px]"
-                    onClick={() => setShowStatusDropdown((prev) => !prev)}
-                  >
-                    <CircleStop size={16} />
-                    <span>Status</span>
-                  </div>
-
-                  {showStatusDropdown && (
-                    <div className="absolute top-[-134px] left-0 mt-1 w-32 bg-white border rounded shadow-lg z-50">
-                      {STATUS_OPTIONS.map((status) => {
-                        const isActive = selectedTaskObjects.every(
-                          (task) => task.status === status
-                        );
-
-                        return (
-                          <div
-                            key={status}
-                            className={`px-3 py-2 cursor-pointer text-gray-800 hover:bg-gray-100 ${isActive
-                              ? "bg-[#7df0fd] text-white font-semibold"
-                              : ""
-                              }`}
-                            onClick={() => handleBulkStatusUpdate(status)}
-                          >
-                            {status.charAt(0).toUpperCase() +
-                              status.slice(1)}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-2 py-1 cursor-pointer flex items-center gap-[5px] hover:bg-white hover:bg-opacity-20 rounded transition-colors">
-                  <TaskEmployees
-                    selected={commonAssignees}
-                    onChange={handleBulkAssigneeUpdate}
-                    employees={employees}
-                    className="task-dropdown"
-                  />
-                </div>
-
-                <div className="px-2 py-1 cursor-pointer flex items-center gap-[5px] relative text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors">
-                  <div className="bulkdate-calender">
-                    <SmartDatePicker
-                      open={showDatePicker === "bulk"}
-                      setOpen={(v) =>
-                        setShowDatePicker(v ? "bulk" : null)
-                      }
-                      selected={bulkDueDate}
-                      setSelected={(d) => {
-                        setBulkDueDate(d);
-                        handleBulkDateUpdate(d);
-                        setShowDatePicker(null);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div
-                  className="px-2 py-1 cursor-pointer hover:bg-white hover:bg-opacity-20 rounded transition-colors"
-                  onClick={handleCopyTasks}
-                >
-                  <Copy size={16} />
-                </div>
-                <div
-                  className="px-2 py-1 text-red-600 cursor-pointer hover:bg-white hover:bg-opacity-20 rounded transition-colors"
-                  onClick={handleDeleteTasks}
-                >
-                  <Trash size={16} />
-                </div>
-              </div>
-            </div>
-          </div>
 
           {toastMessage && (
             <SucessToast type={toastType} message={toastMessage} />
