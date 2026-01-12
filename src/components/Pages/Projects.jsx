@@ -74,7 +74,11 @@ export default function Projects() {
   const [editData, setEditData] = useState({
     title: "",
     description: [
-      { taskLinks: [""], storeLink: "", referenceLink: "", figmaLink: "", taskdescription: [""], }
+      {
+        storeLink: "",
+        referenceLink: "",
+        figmaLink: "",
+      },
     ],
     priority: "",
     status: "upcoming",
@@ -461,11 +465,9 @@ export default function Projects() {
     const formattedDescription = Array.isArray(editData.description)
       ? editData.description.map((desc, idx) => {
         const formatted = {
-          taskLinks: Array.isArray(desc.taskLinks) ? desc.taskLinks : [],
           storeLink: desc.storeLink || "",
           referenceLink: desc.referenceLink || "",
           figmaLink: desc.figmaLink || "",
-          taskdescription: Array.isArray(desc.taskdescription) ? desc.taskdescription : [],
         };
 
         console.log(`Formatted description[${idx}]:`, formatted);
@@ -473,7 +475,6 @@ export default function Projects() {
       })
       : [
         {
-          taskLinks: [],
           storeLink: "",
           referenceLink: "",
           figmaLink: "",
@@ -481,8 +482,10 @@ export default function Projects() {
       ];
 
     console.log("Full formattedDescription:", formattedDescription);
+
+
     const newComments = generateComments(currentTask, editData, currentUser);
-    console.log("New comments:", newComments);
+    console.log("New comments:", newComments); // optional, to debug comments
 
     updateProject.mutate(
       {
@@ -748,7 +751,9 @@ export default function Projects() {
 
       setEditData({
         title: task.title || "",
-        description: task.description || "",
+        description: Array.isArray(task.description)
+          ? task.description
+          : [{storeLink: "", referenceLink: "", figmaLink: "" }],
         priority: task.priority || "",
         status: task.status || "",
         employeesName: task.assignedEmployees?.map((e) => e.username) || [],
@@ -1133,15 +1138,6 @@ export default function Projects() {
     ]
   );
 
-  useEffect(() => {
-    setEditData((prev) => ({
-      ...prev,
-      description: Array.isArray(prev.description) ? prev.description : [
-        { taskLinks: [""], storeLink: "", referenceLink: "", figmaLink: "", taskdescription: [""] }
-      ],
-    }));
-  }, []);
-
   if (isLoading) return <p className="p-6">Loading employees...</p>;
   if (error)
     return <p className="p-6 text-red-600">Error loading employees</p>;
@@ -1181,111 +1177,21 @@ export default function Projects() {
 
                     <div className="w-full mx-auto mt-10">
                       <h3 className="text-sm mb-2 font-medium">Task Details</h3>
+
                       {editData.description && (
                         <div className="mb-4">
-                          {editData.description?.map((desc, idx) => (
-                            <div key={idx} className="mb-2">
-                              <label className="text-gray-600 text-sm mb-1 block">Task Links</label>
-                              {desc.taskLinks.map((link, linkIdx) => (
-                                <div key={linkIdx} className="flex gap-2 items-center mb-1">
-                                  <input
-                                    type="text"
-                                    className="flex-1 border rounded px-2 py-1 text-[14px]"
-                                    value={link}
-                                    placeholder="Enter task link..."
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setEditData((prev) => ({
-                                        ...prev,
-                                        description: prev.description.map((d, dIdx) =>
-                                          dIdx === idx
-                                            ? {
-                                              ...d,
-                                              taskLinks: d.taskLinks.map((l, lIdx) =>
-                                                lIdx === linkIdx ? value : l
-                                              ),
-                                            }
-                                            : d
-                                        ),
-                                      }));
-                                    }}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditData((prev) => ({
-                                        ...prev,
-                                        description: prev.description.map((d, dIdx) =>
-                                          dIdx === idx
-                                            ? {
-                                              ...d,
-                                              taskLinks: d.taskLinks.filter((_, lIdx) => lIdx !== linkIdx),
-                                            }
-                                            : d
-                                        ),
-                                      }));
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              ))}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditData((prev) => ({
-                                    ...prev,
-                                    description: prev.description.map((d, dIdx) =>
-                                      dIdx === idx
-                                        ? { ...d, taskLinks: [...d.taskLinks, ""] }
-                                        : d
-                                    ),
-                                  }));
-                                }}
-                                className="text-blue-500 text-sm mt-1"
-                              >
-                                + Add Link
-                              </button>
-                            </div>
-                          ))}
-
-                          {(editData.description[0]?.taskdescription || []).map((desc, idx) => (
-                            <div key={idx} className="mb-2">
-                              <label className="text-gray-600 text-sm block">Task Description {idx + 1}</label>
-                              <input
-                                type="text"
-                                className="w-full border rounded px-2 py-1 text-[14px]"
-                                value={desc}
-                                onChange={(e) => {
-                                  const newTaskDesc = [...(editData.description[0]?.taskdescription || [])];
-                                  newTaskDesc[idx] = e.target.value;
-                                  setEditData((prev) => ({
-                                    ...prev,
-                                    description: [
-                                      { ...prev.description[0], taskdescription: newTaskDesc },
-                                    ],
-                                  }));
-                                }}
-                              />
-                            </div>
-                          ))}
-
+                       
                           <div className="mt-2 space-y-2">
                             <div>
                               <label className="text-gray-600 text-sm block">Store Link</label>
                               <input
                                 type="text"
                                 className="w-full border rounded px-2 py-1 text-[14px]"
-                                value={editData.description[0]?.storeLink || ""}
+                                value={editData.description.storeLink || ""}
                                 onChange={(e) =>
                                   setEditData((prev) => ({
                                     ...prev,
-                                    description: [
-                                      {
-                                        ...prev.description[0],
-                                        storeLink: e.target.value,
-                                      },
-                                    ],
+                                    description: { ...prev.description, storeLink: e.target.value },
                                   }))
                                 }
                               />
@@ -1295,16 +1201,11 @@ export default function Projects() {
                               <input
                                 type="text"
                                 className="w-full border rounded px-2 py-1 text-[14px]"
-                                value={editData.description[0]?.referenceLink || ""}
+                                value={editData.description.referenceLink || ""}
                                 onChange={(e) =>
                                   setEditData((prev) => ({
                                     ...prev,
-                                    description: [
-                                      {
-                                        ...prev.description[0],
-                                        referenceLink: e.target.value,
-                                      },
-                                    ],
+                                    description: { ...prev.description, referenceLink: e.target.value },
                                   }))
                                 }
                               />
@@ -1314,23 +1215,59 @@ export default function Projects() {
                               <input
                                 type="text"
                                 className="w-full border rounded px-2 py-1 text-[14px]"
-                                value={editData.description[0]?.figmaLink || ""}
+                                value={editData.description.figmaLink || ""}
                                 onChange={(e) =>
                                   setEditData((prev) => ({
                                     ...prev,
-                                    description: [
-                                      {
-                                        ...prev.description[0],
-                                        figmaLink: e.target.value,
-                                      },
-                                    ],
+                                    description: { ...prev.description, figmaLink: e.target.value },
                                   }))
                                 }
                               />
                             </div>
+
                           </div>
                         </div>
                       )}
+
+                      {editData.description?.[0]?.taskLinks?.map((link, idx) => (
+                        <div key={idx} className="flex gap-2 items-center mb-1">
+                          <input
+                            type="text"
+                            className="flex-1 border rounded px-2 py-1 text-[14px]"
+                            value={link}
+                            placeholder="Enter task link..."
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setEditData((prev) => {
+                                const newDescription = [...prev.description];
+                                newDescription[0] = {
+                                  ...newDescription[0],
+                                  taskLinks: newDescription[0].taskLinks.map((l, i) =>
+                                    i === idx ? value : l
+                                  ),
+                                };
+                                return { ...prev, description: newDescription };
+                              });
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditData((prev) => {
+                                const newDescription = [...prev.description];
+                                newDescription[0] = {
+                                  ...newDescription[0],
+                                  taskLinks: newDescription[0].taskLinks.filter((_, i) => i !== idx),
+                                };
+                                return { ...prev, description: newDescription };
+                              });
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+
                     </div>
                     <button
                       className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold transition-colors"
