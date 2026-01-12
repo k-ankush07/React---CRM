@@ -414,3 +414,26 @@ export function useDeleteContract() {
     onSuccess: () => queryClient.invalidateQueries(["contracts"]),
   });
 }
+
+export function useUpload() {
+  const mutation = useMutation({
+    mutationFn: async (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(api.auth.upload.path, {
+        method: api.auth.upload.method,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("File upload failed");
+      }
+
+      const data = await res.json();
+      return data; 
+    },
+  });
+
+  return mutation;
+}

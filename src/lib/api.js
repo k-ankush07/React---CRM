@@ -91,5 +91,9 @@ export const api = {
         method: "DELETE",
       },
     },
+    upload: {
+      path: `${BASE_URL}/api/upload`,
+      method: "POST",
+    },
   },
 };
