@@ -44,6 +44,14 @@ export const api = {
         path: (id) => `${BASE_URL}/api/projects/${id}`,
         method: "DELETE",
       },
+      renameStatus: {
+        path: (id) => `${BASE_URL}/api/projects/${id}/rename-status`,
+        method: "PUT",
+      },
+      dragDrop: {
+        path: (id) => `${BASE_URL}/api/projects/${id}/task-order`,
+        method: "PUT",
+      },
     },
     getprojects: {
       path: `${BASE_URL}/api/get-projects`,

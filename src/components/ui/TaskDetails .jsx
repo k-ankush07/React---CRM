@@ -40,14 +40,12 @@ const TaskDetails = ({ editData, setEditData }) => {
             <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
                 Task Details
             </h3>
-
             <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
                 {editData.description.map((desc, index) => (
                     <div
                         key={index}
                         className="bg-white shadow-sm border border-gray-200 rounded-lg p-5 space-y-5"
                     >
-                        {/* Store Link */}
                         <div>
                             <label className="text-gray-600 text-sm font-medium block mb-1">
                                 Store Link

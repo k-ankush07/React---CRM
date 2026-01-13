@@ -310,3 +310,17 @@ body {
 .daterangepicker .calendar-table .next:hover {
   color: #0c6e00;
 }
+
+.status-input input {
+  padding: 0;
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.status-input input:focus,
+.status-input input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}

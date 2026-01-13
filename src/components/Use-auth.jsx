@@ -437,3 +437,48 @@ export function useUpload() {
 
   return mutation;
 }
+
+export function useRenameProjectStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, oldStatus, newStatus }) => {
+      const res = await fetch(api.auth.projects.renameStatus.path(id), {
+        method: api.auth.projects.renameStatus.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ oldStatus, newStatus }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to rename status");
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["projects"]);
+    },
+  });
+}
+
+export function useDragDropTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, status, taskOrder }) => {
+      const res = await fetch(`${BASE_URL}/api/projects/${projectId}/task-order`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status, taskOrder }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update task order");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["projects"]),
+  });
+}

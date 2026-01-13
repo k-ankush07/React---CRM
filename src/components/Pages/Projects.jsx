@@ -2,14 +2,16 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import SucessToast from "../ui/SucessToast";
 import ManagementLayout from "./ManagementLayout";
 import {
-  useEmployees, useUser, useCreateProject, useProjects, useUpdateProject, useDeleteTask,
+  useEmployees, useUser, useCreateProject, useProjects, useUpdateProject, useDeleteTask, useRenameProjectStatus,
+  useDragDropTask
 } from "../Use-auth";
 import SmartDatePicker from "../ui/SmartDatePicker";
 import TaskPriority from "../ui/TaskPriority";
 import TaskEmployees from "../ui/TaskEmployees";
 import { useDateRange } from "./DateRangeContext";
 import {
-  Calendar, Plus, CircleCheck, Trash, Copy, Flag, CircleStop, Users, GripVertical, X, SendHorizontal, CircleDot
+  Calendar, Plus, CircleCheck, Trash, Copy, Flag, CircleStop, Users, GripVertical, X, SendHorizontal,
+  CircleDot, ChevronRight, Ellipsis
 } from "lucide-react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, } from "@dnd-kit/core";
 import {
@@ -20,13 +22,29 @@ import ProjectList from "../ui/ProjectList";
 import CommentsSection from "../ui/CommentsSection ";
 import { Input } from "../ui/Input";
 import TaskDetails from "../ui/TaskDetails ";
+import { Button } from "../ui/Button";
 
-const statusColors = {
-  completed: "bg-[#299764] text-white",
-  progress: "bg-orange-600 text-white",
-  upcoming: "bg-blue-600 text-white",
+const getStatusColor = (status) => {
+  const colors = [
+    "bg-gray-600 text-white",
+    "bg-blue-600 text-white",
+    "bg-green-600 text-white",
+    "bg-orange-600 text-white",
+    "bg-purple-600 text-white",
+    "bg-pink-600 text-white",
+    "bg-teal-600 text-white",
+    "bg-yellow-500 text-black",
+    "bg-red-600 text-white",
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < status.length; i++) {
+    hash = status.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
 };
-const STATUS_OPTIONS = ["completed", "progress", "upcoming"];
 
 export default function Projects() {
   const { start, end } = useDateRange();
@@ -36,38 +54,23 @@ export default function Projects() {
   const { data: projects = [], refetch } = useProjects();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteTask();
-
+  const dragDropTaskMutation = useDragDropTask();
+  const renameStatusMutation = useRenameProjectStatus();
+  const [statuses, setStatuses] = useState(["todo"]);
+  const [newStatusName, setNewStatusName] = useState("");
   // State management
+  const initStatusObject = (value) =>
+    Object.fromEntries(statuses.map((s) => [s, value]));
   const [editingStatus, setEditingStatus] = useState(null);
-  const [taskInput, setTaskInput] = useState({
-    completed: "",
-    progress: "",
-    upcoming: "",
-  });
-  const [selectedEmployees, setSelectedEmployees] = useState({
-    completed: [],
-    progress: [],
-    upcoming: [],
-  });
-  const [priority, setPriority] = useState({
-    completed: "",
-    progress: "",
-    upcoming: "",
-  });
-  const [selectedTasks, setSelectedTasks] = useState({
-    completed: [],
-    progress: [],
-    upcoming: [],
-  });
+  const [taskInput, setTaskInput] = useState(() => initStatusObject(""));
+  const [selectedEmployees, setSelectedEmployees] = useState(() => initStatusObject([]));
+  const [priority, setPriority] = useState(() => initStatusObject(""));
+  const [selectedTasks, setSelectedTasks] = useState(() => initStatusObject([]));
+  const [dueDate, setDueDate] = useState(() => initStatusObject(null));
   const [projectName, setProjectName] = useState("");
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
-  const [dueDate, setDueDate] = useState({
-    completed: null,
-    progress: null,
-    upcoming: null,
-  });
   const [showDescriptionPopup, setShowDescriptionPopup] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -84,20 +87,25 @@ export default function Projects() {
       },
     ],
     priority: "",
-    status: "upcoming",
+    status: statuses,
     assignedEmployees: [],
     dueDate: null
   });
-
+  const [collapsedStatuses, setCollapsedStatuses] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(null);
   const [bulkDueDate, setBulkDueDate] = useState(null);
   const [commentText, setCommentText] = useState("");
   const [commentEmployees, setCommentEmployees] = useState([]);
+  const [editingStatusName, setEditingStatusName] = useState(null);
+  const [renameInput, setRenameInput] = useState("");
+  const [openMenuStatus, setOpenMenuStatus] = useState(null);
 
   // Refs
   const addTaskRef = useRef(null);
   const statusRef = useRef(null);
   const textareaRef = useRef(null);
+  const newStatusRef = useRef(null);
+  const menuRef = useRef(null);
 
   // Project order state with persistence
   const [projectOrder] = useState(() => {
@@ -109,7 +117,12 @@ export default function Projects() {
   const [taskOrder, setTaskOrder] = useState(() => {
     const stored = localStorage.getItem("taskOrder");
     if (stored) return JSON.parse(stored);
-    return { upcoming: [], progress: [], completed: [] };
+
+    const initialOrder = {};
+    statuses.forEach((s) => {
+      initialOrder[s] = [];
+    });
+    return initialOrder;
   });
 
   useEffect(() => {
@@ -123,6 +136,14 @@ export default function Projects() {
       textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
     }
   }, []);
+
+  useEffect(() => {
+    setTaskInput((p) => ({ ...initStatusObject(""), ...p }));
+    setSelectedEmployees((p) => ({ ...initStatusObject([]), ...p }));
+    setPriority((p) => ({ ...initStatusObject(""), ...p }));
+    setSelectedTasks((p) => ({ ...initStatusObject([]), ...p }));
+    setDueDate((p) => ({ ...initStatusObject(null), ...p }));
+  }, [statuses]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -140,29 +161,50 @@ export default function Projects() {
       if (addTaskRef.current && !addTaskRef.current.contains(event.target)) {
         setEditingStatus(null);
       }
+     
+        if (menuRef.current && !menuRef.current.contains(event.target)) {
+          setOpenMenuStatus(null); 
+        }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (statusRef.current && !statusRef.current.contains(event.target)) {
+        if (editingStatusName) handleRenameStatus(editingStatusName);
+      }
+
+      if (newStatusRef.current && !newStatusRef.current.contains(event.target)) {
+        const trimmed = newStatusName.trim();
+        if (trimmed && !statuses.includes(trimmed)) {
+          setStatuses((prev) => [...prev, trimmed]);
+          setNewStatusName("");
+        }
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [editingStatusName, renameInput, newStatusName, statuses]);
 
   const allSelectedTasks = useMemo(
     () => Object.values(selectedTasks).flat(),
     [selectedTasks]
   );
 
-  const selectedTaskObjects = useMemo(
-    () =>
-      projects.flatMap(
-        (project) =>
-          project.tasks
-            ?.filter((task) => allSelectedTasks.includes(task._id))
-            .map((task) => ({
-              ...task,
-              projectId: project._id,
-              projectName: project.projectName,
-            })) || []
-      ),
+  const selectedTaskObjects = useMemo(() =>
+    projects.flatMap(project =>
+      Object.values(project.statusTask || {})
+        .flat()
+        .filter(task => allSelectedTasks.includes(task._id))
+        .map(task => ({
+          ...task,
+          projectId: project._id,
+          projectName: project.projectName,
+        }))
+    ),
     [projects, allSelectedTasks]
   );
 
@@ -175,6 +217,37 @@ export default function Projects() {
         : [],
     [selectedTaskObjects]
   );
+
+  const handleRenameStatus = (oldStatusLocal) => {
+    const newStatus = renameInput.trim().toLowerCase();
+    if (!newStatus || statuses.includes(newStatus)) {
+      setEditingStatusName(null);
+      return;
+    }
+
+    setStatuses((prev) => prev.map((s) => (s === oldStatusLocal ? newStatus : s)));
+
+    setTaskOrder((prev) => {
+      const updated = { ...prev };
+      if (updated[oldStatusLocal]) {
+        updated[newStatus] = updated[oldStatusLocal];
+        delete updated[oldStatusLocal];
+      }
+      return updated;
+    });
+
+    projects.forEach((project) => {
+      if (project.statusTask?.[oldStatusLocal]) {
+        renameStatusMutation.mutate({
+          id: project._id,
+          oldStatus: oldStatusLocal,
+          newStatus,
+        });
+      }
+    });
+
+    setEditingStatusName(null);
+  };
 
   // update database Project asign user //
   const handleUpdateProject = useCallback(
@@ -299,13 +372,16 @@ export default function Projects() {
 
   // copy task //
   const handleCopyTasks = useCallback(() => {
-    if (!selectedTaskObjects.length) return;
+    if (!selectedTaskObjects.length) {
+      console.log("No tasks selected for copying.");
+      return;
+    }
 
     selectedTaskObjects.forEach((task) => {
       const duplicateTask = {
         taskTitle: task.title + " (Copy)",
         description: task.description,
-        assignedEmployees: task.assignedEmployees.map((e) => e._id),
+        assignedEmployees: task.assignedEmployees?.map((e) => e._id) || [],
         status: task.status,
         priority: task.priority,
         dueDate: task.dueDate,
@@ -318,12 +394,13 @@ export default function Projects() {
           ...duplicateTask,
         },
         {
-          onSuccess: () => {
+          onSuccess: (res) => {
             setToastMessage(`Task "${task.title}" copied successfully!`);
             setToastType("success");
             refetch();
           },
           onError: (err) => {
+            console.error("Error copying task:", err);
             setToastMessage("Error copying task: " + err.message);
             setToastType("error");
           },
@@ -331,28 +408,33 @@ export default function Projects() {
       );
     });
 
-    setSelectedTasks({
-      completed: [],
-      progress: [],
-      upcoming: [],
-    });
   }, [selectedTaskObjects, updateProject, refetch]);
+
 
   // delete task //
 
   const handleDeleteTasks = useCallback(() => {
-    if (!selectedTaskObjects.length) return;
+    if (!selectedTaskObjects.length) {
+      console.log("No tasks selected for deletion.");
+      return;
+    }
+
+    console.log("Deleting selected tasks:", selectedTaskObjects);
 
     selectedTaskObjects.forEach((task) => {
+      console.log(`Deleting task: ${task._id} (${task.title}) from project: ${task.projectId}`);
+
       deleteProject.mutate(
         { projectId: task.projectId, taskId: task._id },
         {
-          onSuccess: () => {
+          onSuccess: (res) => {
+            console.log(`Task "${task.title}" deleted successfully! Response:`, res);
             setToastMessage(`Task "${task.title}" deleted successfully!`);
             setToastType("success");
             refetch();
           },
           onError: (err) => {
+            console.error(`Error deleting task "${task.title}":`, err);
             setToastMessage("Error deleting task: " + err.message);
             setToastType("error");
           },
@@ -360,28 +442,18 @@ export default function Projects() {
       );
     });
 
-    setSelectedTasks({
-      completed: [],
-      progress: [],
-      upcoming: [],
-    });
+    console.log("Finished initiating delete for all selected tasks.");
   }, [selectedTaskObjects, deleteProject, refetch]);
+
 
   // add comment in  task //
   const generateComments = useCallback(
     (taskToUpdate, editDataParam, currentUserParam) => {
       const comments = [];
       const currentUserName = currentUserParam?.username || "Unknown";
-      const assignedUsers = (editDataParam.assignedEmployees || [])
-        .map((empId) => employees.find((e) => e._id === empId))
-        .filter(Boolean)
-        .map((emp) => ({
-          _id: emp._id,
-          userId: emp.userId,
-          username: emp.fullName || emp.username,
-          role: emp.role,
-          email: emp.email,
-        }));
+
+      const normalizeDate = (date) =>
+        date ? new Date(date).setHours(0, 0, 0, 0) : null;
 
       if (!taskToUpdate) {
         comments.push({
@@ -389,73 +461,70 @@ export default function Projects() {
           createdBy: currentUserName,
           createdAt: new Date(),
         });
-      } else {
-        if (taskToUpdate.title !== editDataParam.title) {
-          comments.push({
-            text: `${currentUserName} updated the title to "${editDataParam.title}"`,
-            createdBy: currentUserName,
-            createdAt: new Date(),
-          });
-        }
+        return comments;
+      }
 
-        if (taskToUpdate.description !== editDataParam.description) {
-          comments.push({
-            text: `${currentUserName} updated the description`,
-            createdBy: currentUserName,
-            createdAt: new Date(),
-          });
-        }
+      if (taskToUpdate.title !== editDataParam.title) {
+        comments.push({
+          text: `${currentUserName} updated the title to "${editDataParam.title}"`,
+          createdBy: currentUserName,
+          createdAt: new Date(),
+        });
+      }
 
-        if (taskToUpdate.priority !== editDataParam.priority) {
-          comments.push({
-            text: `${currentUserName} set priority to ${editDataParam.priority}`,
-            createdBy: currentUserName,
-            createdAt: new Date(),
-          });
-        }
+      if (
+        JSON.stringify(taskToUpdate.description) !==
+        JSON.stringify(editDataParam.description)
+      ) {
+        comments.push({
+          text: `${currentUserName} updated the description`,
+          createdBy: currentUserName,
+          createdAt: new Date(),
+        });
+      }
 
-        const oldDue = taskToUpdate.dueDate
-          ? new Date(taskToUpdate.dueDate).toISOString()
-          : null;
-        const newDue = editDataParam.dueDate
-          ? new Date(editDataParam.dueDate).toISOString()
-          : null;
+      if (taskToUpdate.priority !== editDataParam.priority) {
+        comments.push({
+          text: `${currentUserName} set priority to ${editDataParam.priority}`,
+          createdBy: currentUserName,
+          createdAt: new Date(),
+        });
+      }
 
-        if (oldDue !== newDue) {
-          const formattedDate = newDue
-            ? new Date(newDue).toLocaleDateString()
-            : "none";
-          comments.push({
-            text: `${currentUserName} set the due date to ${formattedDate}`,
-            createdBy: currentUserName,
-            createdAt: new Date(),
-          });
-        }
+      const oldDue = normalizeDate(taskToUpdate.dueDate);
+      const newDue = normalizeDate(editDataParam.dueDate);
 
-        const oldAssigned = (taskToUpdate.assignedEmployees || [])
+      if (oldDue !== newDue) {
+        const formattedDate = newDue
+          ? new Date(newDue).toLocaleDateString()
+          : "none";
+        comments.push({
+          text: `${currentUserName} set the due date to ${formattedDate}`,
+          createdBy: currentUserName,
+          createdAt: new Date(),
+        });
+      }
+
+      const oldAssigned =
+        (taskToUpdate.assignedEmployees || [])
           .map((e) => e._id)
           .sort()
           .join(",") || "";
-        const newAssigned = (assignedUsers || [])
-          .map((e) => e._id)
-          .sort()
-          .join(",") || "";
 
-        if (oldAssigned !== newAssigned) {
-          const assignedNames = assignedUsers
-            .map((u) => u.username)
-            .join(", ") || "none";
-          comments.push({
-            text: `${currentUserName} assigned to: ${assignedNames}`,
-            createdBy: currentUserName,
-            createdAt: new Date(),
-          });
-        }
+      const newAssigned =
+        (editDataParam.assignedEmployees || []).sort().join(",") || "";
+
+      if (oldAssigned !== newAssigned) {
+        comments.push({
+          text: `${currentUserName} updated assigned users`,
+          createdBy: currentUserName,
+          createdAt: new Date(),
+        });
       }
 
       return comments;
     },
-    [employees]
+    []
   );
 
   // close Popup  than all save database data in  task //
@@ -495,12 +564,15 @@ export default function Projects() {
           figmaLink: "",
           figmaLinkDisabled: false,
           taskdescription: [],
-          file:[]
+          file: []
         },
       ];
 
-    const newComments = generateComments(currentTask, editData, currentUser);
-    console.log("New comments:", newComments);
+    const newComments = generateComments(
+      currentTask,
+      editData,
+      currentUser
+    );
 
     updateProject.mutate(
       {
@@ -514,7 +586,7 @@ export default function Projects() {
           ? new Date(editData.dueDate).toISOString()
           : null,
         assignedEmployees: editData.assignedEmployees,
-        comments: [...(currentTask.comments || []), ...newComments],
+        comments: newComments,
       },
       {
         onSuccess: () => {
@@ -548,7 +620,6 @@ export default function Projects() {
   const handleBulkAssigneeUpdate = useCallback(
     (newAssignees) => {
       const currentUserName = currentUser?.username || "Unknown";
-
       const getEmployeeName = (id) =>
         employees.find((e) => e._id === id)?.fullName || "Unknown";
 
@@ -568,6 +639,7 @@ export default function Projects() {
         updateProject.mutate({
           id: task.projectId,
           taskId: task._id,
+          status: task.status,
           assignedEmployees: newAssignees,
           comments: updatedComments,
         });
@@ -575,6 +647,7 @@ export default function Projects() {
 
       setToastMessage("Assignees updated successfully");
       setToastType("success");
+
       refetch();
     },
     [selectedTaskObjects, currentUser, employees, updateProject, refetch]
@@ -583,9 +656,13 @@ export default function Projects() {
   // assign task update  status//
   const handleBulkStatusUpdate = useCallback(
     (newStatus) => {
-      if (!selectedTaskObjects.length) return;
+      if (!selectedTaskObjects.length) {
+        console.log("No tasks selected. Exiting.");
+        return;
+      }
 
       const currentUserName = currentUser?.username || "Unknown";
+
       selectedTaskObjects.forEach((task) => {
         const updatedComments = Array.isArray(task.comments)
           ? [...task.comments]
@@ -598,12 +675,14 @@ export default function Projects() {
             createdAt: new Date(),
           });
         }
-
         updateProject.mutate({
           id: task.projectId,
           taskId: task._id,
           status: newStatus,
           comments: updatedComments,
+        }, {
+          onSuccess: (res) => console.log("Task updated successfully:", task._id, res),
+          onError: (err) => console.error("Error updating task:", task._id, err),
         });
       });
 
@@ -624,6 +703,7 @@ export default function Projects() {
     },
     [selectedTaskObjects, currentUser, updateProject, refetch]
   );
+
 
   // comment functions//
   const handleAddComment = useCallback(() => {
@@ -682,15 +762,15 @@ export default function Projects() {
       return;
     }
 
-    const selectedTaskObjectsTemp = projects.flatMap(
-      (project) =>
-        project.tasks
-          ?.filter((task) => allSelectedTasks.includes(task._id))
-          .map((task) => ({
-            ...task,
-            projectId: project._id,
-            projectName: project.projectName,
-          })) || []
+    const selectedTaskObjectsTemp = projects.flatMap((project) =>
+      Object.values(project.statusTask)
+        .flat()
+        .filter((task) => allSelectedTasks.includes(task._id))
+        .map((task) => ({
+          ...task,
+          projectId: project._id,
+          projectName: project.projectName,
+        }))
     );
 
     const dates = selectedTaskObjectsTemp
@@ -727,6 +807,7 @@ export default function Projects() {
         updateProject.mutate({
           id: task.projectId,
           taskId: task._id,
+          status: task.status,
           dueDate: date.toISOString(),
           comments: updatedComments,
         });
@@ -845,11 +926,13 @@ export default function Projects() {
   }, [projects, projectOrder]);
 
   useEffect(() => {
-    STATUS_OPTIONS.forEach((status) => {
+    statuses.forEach((status) => {
       const tasks = localProjects.flatMap((p) =>
-        p.tasks?.filter((t) => t.status === status).map((t) => t._id) || []
+        Object.entries(p.statusTask || {})
+          .flatMap(([statusKey, tasksArray]) =>
+            statusKey === status ? tasksArray.map((t) => t._id) : []
+          )
       );
-
       setTaskOrder((prev) => {
         const missingTasks = tasks.filter((t) => !prev[status]?.includes(t));
         if (missingTasks.length === 0) return prev;
@@ -861,7 +944,7 @@ export default function Projects() {
         return updated;
       });
     });
-  }, [projects, localProjects]);
+  }, [statuses, localProjects]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -872,22 +955,74 @@ export default function Projects() {
   );
 
   // drag and drop//
-  const handleDragEnd = useCallback((status, event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  const handleDragEnd = useCallback(
+    async (status, event) => {
+      const { active, over } = event;
 
-    const oldIndex = taskOrder[status].indexOf(active.id);
-    const newIndex = taskOrder[status].indexOf(over.id);
+      if (!over || active.id === over.id) {
+        console.log("No valid drop or same position. Exiting.");
+        return;
+      }
+      const oldIndex = taskOrder[status].indexOf(active.id);
+      const newIndex = taskOrder[status].indexOf(over.id);
 
-    if (oldIndex === newIndex) return;
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+        console.warn("Active or Over ID not found, or indexes are same. Exiting.");
+        return;
+      }
 
-    const newTaskOrder = arrayMove(taskOrder[status], oldIndex, newIndex);
-    setTaskOrder((prev) => {
-      const updated = { ...prev, [status]: newTaskOrder };
-      localStorage.setItem("taskOrder", JSON.stringify(updated));
-      return updated;
+      const newTaskOrder = arrayMove(taskOrder[status], oldIndex, newIndex);
+
+      setTaskOrder(prev => {
+        const updated = { ...prev, [status]: newTaskOrder };
+        localStorage.setItem("taskOrder", JSON.stringify(updated));
+        return updated;
+      });
+
+      localProjects.forEach(project => {
+        const tasksInStatus = project.statusTask?.[status] || [];
+        const taskMap = new Map(tasksInStatus.map(t => [t._id.toString(), t]));
+        const reorderedTasks = newTaskOrder
+          .map(id => taskMap.get(id))
+          .filter(Boolean);
+
+        if (reorderedTasks.length) {
+          dragDropTaskMutation.mutate({
+            projectId: project._id,
+            status,
+            taskOrder: reorderedTasks.map(t => t._id),
+          });
+        }
+      });
+
+    },
+    [taskOrder, localProjects, dragDropTaskMutation]
+  );
+
+  useEffect(() => {
+    if (!projects.length) return;
+
+    const taskStatuses = new Set();
+
+    projects.forEach((project) => {
+      Object.keys(project.statusTask || {}).forEach((statusKey) => {
+        if (project.statusTask[statusKey].length > 0)
+          taskStatuses.add(statusKey);
+      });
     });
-  }, [taskOrder]);
+
+    setStatuses((prev) => {
+      const merged = new Set([...prev, ...taskStatuses]);
+      return Array.from(merged);
+    });
+  }, [projects]);
+
+  const toggleStatus = (status) => {
+    setCollapsedStatuses((prev) => ({
+      ...prev,
+      [status]: !prev[status],
+    }));
+  };
 
   //renderTasks all task //
   const renderTasks = useCallback(
@@ -895,18 +1030,16 @@ export default function Projects() {
       let allTasks = [];
 
       localProjects.forEach((project) => {
-        if (
-          new Date(project.createdAt) >= start &&
-          new Date(project.createdAt) <= end
-        ) {
-          project.tasks?.forEach((task) => {
+        Object.entries(project.statusTask || {}).forEach(([statusKey, tasksArray]) => {
+          tasksArray.forEach(task => {
             allTasks.push({
               ...task,
+              status: statusKey,
               projectId: project._id,
               projectName: project.projectName,
             });
           });
-        }
+        });
       });
 
       let filteredTasks = allTasks.filter((task) => task.status === status);
@@ -965,19 +1098,97 @@ export default function Projects() {
     ]
   );
 
+  const tasksByStatus = useMemo(() => {
+    const map = {};
+
+    projects?.forEach((project) => {
+      const statusTask = project.statusTask || {};
+
+      Object.entries(statusTask).forEach(([status, tasks]) => {
+        if (!map[status]) {
+          map[status] = [];
+        }
+        map[status].push(...tasks);
+      });
+    });
+
+    return map;
+  }, [projects]);
+
+  const getTaskCount = (status) => tasksByStatus[status]?.length || 0;
   //renderSections all task //
   const renderSection = useCallback(
     (status) => (
       <div className="mb-8">
         <div>
-          <h2
-            className={`font-normal inline-block text-sm px-2 py-1 rounded ${statusColors[status]}`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </h2>
+          {editingStatusName === status ? (
+            <div className="inline-flex items-center gap-2" ref={statusRef}>
+              <input
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value.toLowerCase())}
+                className="px-2 py-1 border rounded text-sm outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameStatus(status);
+                  }
+                  if (e.key === "Escape") setEditingStatusName(null);
+                }}
+                autoFocus
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <ChevronRight
+                size={18}
+                color="grey"
+                className={`cursor-pointer transition-transform duration-200 ${collapsedStatuses[status] ? "" : "rotate-90"
+                  }`}
+                onClick={() => toggleStatus(status)}
+              />
+              <h2
+                onDoubleClick={() => {
+                  setEditingStatusName(status);
+                  setRenameInput(status);
+                }}
+                className={`cursor-pointer font-normal inline-block text-sm px-2 py-1 rounded ${getStatusColor(status)}`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </h2> <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
+                {getTaskCount(status)}
+              </span>
+              <div className="relative">
+                <Ellipsis
+                  size={18}
+                  color="grey"
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setOpenMenuStatus(openMenuStatus === status ? null : status)
+                  }
+                />
+                {openMenuStatus === status && (
+                  <div ref={menuRef}  className="absolute mt-2 left-0 bg-white shadow-lg rounded  z-50 w-40">
+                    <Button
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                      onClick={() => {
+                        setEditingStatusName(status);
+                        setRenameInput(status);
+                        setOpenMenuStatus(null);
+                      }}
+                    >
+                      Rename Status
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+          )}
         </div>
-        {renderTasks(status)}
-        {editingStatus !== status ? (
+
+        {!collapsedStatuses[status] && renderTasks(status)}
+        {!collapsedStatuses[status] && (editingStatus !== status ? (
           <div
             className="flex items-center gap-1 mt-[10px] cursor-pointer text-[14px] text-gray-500 border-b-0 hover:border-b hover:border-gray-300"
             onClick={() => setEditingStatus(status)}
@@ -993,15 +1204,17 @@ export default function Projects() {
             <div className="flex items-center justify-center rounded-full bg-[#299764] text-white">
               <CircleCheck size={16} />
             </div>
-            <Input
-              type="text"
-              className="flex w-[50%] px-2 py-1 outline-none text-[14px]"
-              placeholder="Task Name or type for commands"
-              value={taskInput[status]}
-              onChange={(e) =>
-                setTaskInput((prev) => ({ ...prev, [status]: e.target.value }))
-              }
-            />
+            <div className="w-[50%]">
+              <Input
+                type="text"
+                className="flex w-[50%] px-2 py-1 outline-none text-[14px]"
+                placeholder="Task Name or type for commands"
+                value={taskInput[status]}
+                onChange={(e) =>
+                  setTaskInput((prev) => ({ ...prev, [status]: e.target.value }))
+                }
+              />
+            </div>
             <div className="smart-date-task inline-flex">
               <SmartDatePicker
                 open={showDatePicker === status}
@@ -1045,7 +1258,7 @@ export default function Projects() {
               Save
             </button>
           </div>
-        )}
+        ))}
       </div>
     ),
     [
@@ -1166,12 +1379,28 @@ export default function Projects() {
           {renderProjectTasks()}
           {activeProjectId && (
             <>
-              {renderSection("upcoming")}
-              {renderSection("progress")}
-              {renderSection("completed")}
+              {statuses.includes("todo") && (
+                <div key="todo">{renderSection("todo")}</div>
+              )}
+
+              {statuses
+                .filter((s) => s !== "todo")
+                .map((status) => (
+                  <div key={status}>{renderSection(status)}</div>
+                ))}
+
+              <div className="status-input mt-6 flex items-center gap-2 border border-input bg-[white] p-[3px] rounded-[6px]">
+                <Plus size={14} color="grey" />
+                <Input
+                  ref={newStatusRef}
+                  value={newStatusName}
+                  onChange={(e) => setNewStatusName(e.target.value.toLowerCase())}
+                  placeholder="Add new status"
+                  className="p-[0] border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
+                />
+              </div>
             </>
           )}
-
           {showDescriptionPopup && currentTask && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded p-6 w-[90%] h-[90vh] shadow-lg relative overflow-y-auto max-w-[90%]">
@@ -1197,9 +1426,7 @@ export default function Projects() {
                           </span>
                         </span>
                         <span
-                          className={`px-2 py-1 rounded text-sm font-semibold uppercase ${statusColors[editData.status] ||
-                            "bg-gray-300 text-gray-800"
-                            }`}
+                          className={`px-2 py-1 rounded text-sm font-semibold uppercase ${getStatusColor(editData.status || "")}`}
                         >
                           {editData.status || "-"}
                         </span>
@@ -1340,7 +1567,6 @@ export default function Projects() {
               </div>
             </div>
           )}
-
           <div
             className={`
           fixed bottom-4 left-1/2 -translate-x-[40%] w-[100%] max-w-6xl 
@@ -1368,30 +1594,27 @@ export default function Projects() {
                   </div>
 
                   {showStatusDropdown && (
-                    <div className="absolute top-[-134px] left-0 mt-1 w-32 bg-white border rounded shadow-lg z-50">
-                      {STATUS_OPTIONS.map((status) => {
-                        const isActive = selectedTaskObjects.every(
-                          (task) => task.status === status
-                        );
-
-                        return (
-                          <div
-                            key={status}
-                            className={`px-3 py-2 cursor-pointer text-gray-800 hover:bg-gray-100 ${isActive
-                              ? "bg-[#7df0fd] text-white font-semibold"
-                              : ""
-                              }`}
-                            onClick={() => handleBulkStatusUpdate(status)}
-                          >
-                            {status.charAt(0).toUpperCase() +
-                              status.slice(1)}
-                          </div>
-                        );
-                      })}
+                    <div className="absolute bottom-full left-0 mb-4 w-32 bg-white border rounded shadow-lg z-50">
+                      {[...new Set(statuses)]
+                        .filter((status) => status !== "todo")
+                        .map((status) => {
+                          const isActive = selectedTaskObjects.every(
+                            (task) => task.status === status
+                          );
+                          return (
+                            <div
+                              key={status}
+                              className={`px-3 py-2 cursor-pointer text-gray-800  ${isActive ? "bg-[#7df0fd] text-white font-semibold" : ""
+                                }`}
+                              onClick={() => handleBulkStatusUpdate(status)}
+                            >
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </div>
+                          );
+                        })}
                     </div>
                   )}
                 </div>
-
                 <div className="px-2 py-1 cursor-pointer flex items-center gap-[5px] hover:bg-white hover:bg-opacity-20 rounded transition-colors">
                   <TaskEmployees
                     selected={commonAssignees}
@@ -1402,7 +1625,7 @@ export default function Projects() {
                 </div>
 
                 <div className="px-2 py-1 cursor-pointer flex items-center gap-[5px] relative text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors">
-                  <div className="bulkdate-calender">
+                  <div className="bulkdate-calender flex">
                     <SmartDatePicker
                       open={showDatePicker === "bulk"}
                       setOpen={(v) =>
