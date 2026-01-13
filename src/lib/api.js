@@ -52,6 +52,10 @@ export const api = {
         path: (id) => `${BASE_URL}/api/projects/${id}/task-order`,
         method: "PUT",
       },
+      addStatus: {
+        path: `${BASE_URL}/api/project/add-status`,
+        method: "POST",
+      },
     },
     getprojects: {
       path: `${BASE_URL}/api/get-projects`,

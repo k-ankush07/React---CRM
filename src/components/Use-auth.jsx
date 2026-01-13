@@ -468,8 +468,8 @@ export function useDragDropTask() {
 
   return useMutation({
     mutationFn: async ({ projectId, status, taskOrder }) => {
-      const res = await fetch(`${BASE_URL}/api/projects/${projectId}/task-order`, {
-        method: "PUT",
+      const res = await fetch(api.auth.projects.dragDrop.path(projectId), {
+        method: api.auth.projects.dragDrop.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ status, taskOrder }),
@@ -482,3 +482,26 @@ export function useDragDropTask() {
     onSuccess: () => queryClient.invalidateQueries(["projects"]),
   });
 }
+
+export const useAddProjectStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, status }) => {
+      const res = await fetch(api.auth.projects.addStatus.path, {
+        method: api.auth.projects.addStatus.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ projectId, status }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to add status");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries(["projects"]),
+  });
+};
