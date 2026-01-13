@@ -9,6 +9,9 @@ import { useState } from "react";
 const TaskDetails = ({ editData, setEditData }) => {
     const { mutateAsync: uploadFile, isLoading } = useUpload();
     const [fullscreenImage, setFullscreenImage] = useState(null);
+
+
+    console.log(editData)
     if (!Array.isArray(editData?.description)) return null;
 
     const handleFileChange = async (files, index) => {

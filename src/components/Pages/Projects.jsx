@@ -81,9 +81,11 @@ export default function Projects() {
       {
         storeLink: "",
         referenceLink: "",
+        referenceLinkEnabled: false,
         figmaLink: "",
+        figmaLinkDisabled: false,
         taskdescription: [],
-        files: []
+        files: [],
       },
     ],
     priority: "",
@@ -161,10 +163,10 @@ export default function Projects() {
       if (addTaskRef.current && !addTaskRef.current.contains(event.target)) {
         setEditingStatus(null);
       }
-     
-        if (menuRef.current && !menuRef.current.contains(event.target)) {
-          setOpenMenuStatus(null); 
-        }
+
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuStatus(null);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -846,9 +848,19 @@ export default function Projects() {
 
       setEditData({
         title: task.title || "",
-        description: Array.isArray(task.description)
+        description: Array.isArray(task.description) && task.description.length
           ? task.description
-          : [{ storeLink: "", referenceLink: "", figmaLink: "" }],
+          : [
+            {
+              storeLink: "",
+              referenceLink: "",
+              referenceLinkEnabled: false,
+              figmaLink: "",
+              figmaLinkDisabled: false,
+              taskdescription: [],
+              files: []
+            }
+          ],
         priority: task.priority || "",
         status: task.status || "",
         employeesName: task.assignedEmployees?.map((e) => e.username) || [],
@@ -1167,7 +1179,7 @@ export default function Projects() {
                   }
                 />
                 {openMenuStatus === status && (
-                  <div ref={menuRef}  className="absolute mt-2 left-0 bg-white shadow-lg rounded  z-50 w-40">
+                  <div ref={menuRef} className="absolute mt-2 left-0 bg-white shadow-lg rounded  z-50 w-40">
                     <Button
                       className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
                       onClick={() => {
@@ -1377,30 +1389,35 @@ export default function Projects() {
         ></div>
         <div className="relative z-20 h-full overflow-y-auto p-6">
           {renderProjectTasks()}
-          {activeProjectId && (
-            <>
-              {statuses.includes("todo") && (
-                <div key="todo">{renderSection("todo")}</div>
-              )}
+          {activeProjectId && (() => {
+            const activeProject = localProjects.find(p => p._id === activeProjectId);
+            if (!activeProject) return null;
 
-              {statuses
-                .filter((s) => s !== "todo")
-                .map((status) => (
+            const projectStatuses = Object.keys(activeProject.statusTask || {});
+            const otherStatuses = projectStatuses.filter(s => s !== "todo");
+
+            return (
+              <>
+                {otherStatuses.map((status) => (
                   <div key={status}>{renderSection(status)}</div>
                 ))}
 
-              <div className="status-input mt-6 flex items-center gap-2 border border-input bg-[white] p-[3px] rounded-[6px]">
-                <Plus size={14} color="grey" />
-                <Input
-                  ref={newStatusRef}
-                  value={newStatusName}
-                  onChange={(e) => setNewStatusName(e.target.value.toLowerCase())}
-                  placeholder="Add new status"
-                  className="p-[0] border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
-                />
-              </div>
-            </>
-          )}
+                <div key="todo">{renderSection("todo")}</div>
+
+                <div className="status-input mt-6 flex items-center gap-2 border border-input bg-[white] p-[3px] rounded-[6px]">
+                  <Plus size={14} color="grey" />
+                  <Input
+                    ref={newStatusRef}
+                    value={newStatusName}
+                    onChange={(e) => setNewStatusName(e.target.value.toLowerCase())}
+                    placeholder="Add new status"
+                    className="p-[0] border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
+                  />
+                </div>
+              </>
+            );
+          })()}
+
           {showDescriptionPopup && currentTask && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded p-6 w-[90%] h-[90vh] shadow-lg relative overflow-y-auto max-w-[90%]">
