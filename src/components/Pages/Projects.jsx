@@ -1551,7 +1551,7 @@ export default function Projects() {
                       </div>
                     </div>
                     <div className="w-full mx-auto mt-10">
-                      <TaskDetails editData={editData} setEditData={setEditData} />
+                      <TaskDetails editData={editData} setEditData={setEditData} user={currentUser} />
                     </div>
                     <button
                       className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold transition-colors"
