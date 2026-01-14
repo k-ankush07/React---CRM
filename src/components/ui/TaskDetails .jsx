@@ -1,15 +1,14 @@
 import {
-    GripVertical
+    GripVertical, X
 } from "lucide-react";
 import { ReactSortable } from "react-sortablejs";
 import { Input } from "./Input";
 import { useUpload } from "../Use-auth";
-import { useState } from "react";
+import { useState, } from "react";
 
 const TaskDetails = ({ editData, setEditData, user }) => {
     const { mutateAsync: uploadFile, isLoading } = useUpload();
     const [fullscreenImage, setFullscreenImage] = useState(null);
-
     const isEmployee = user?.role === "employee";
 
     if (!Array.isArray(editData?.description)) return null;
@@ -38,6 +37,47 @@ const TaskDetails = ({ editData, setEditData, user }) => {
         });
     };
 
+    const insertImageAtCursor = (url) => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.style.maxWidth = "100%";
+        img.style.borderRadius = "6px";
+        img.style.display = "block";
+        img.style.margin = "6px 0";
+
+        const selection = window.getSelection();
+        if (!selection || !selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(img);
+
+        range.setStartAfter(img);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    };
+
+    /* ---------- HANDLE IMAGE PASTE ---------- */
+    const handlePaste = async (e) => {
+        if (isEmployee) return;
+
+        const items = e.clipboardData.items;
+        for (const item of items) {
+            if (item.type.startsWith("image")) {
+                e.preventDefault();
+
+                const file = item.getAsFile();
+                try {
+                    const res = await uploadFile(file);
+                    insertImageAtCursor(res.url);
+                } catch (err) {
+                    console.error("Image upload failed", err);
+                }
+            }
+        }
+    };
+
     return (
         <div className="w-full mx-auto mt-10">
             <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
@@ -57,8 +97,8 @@ const TaskDetails = ({ editData, setEditData, user }) => {
                                 type="text"
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
                                 value={desc.storeLink || ""}
-                                disabled={isEmployee}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    if (isEmployee) return;
                                     setEditData((prev) => {
                                         const updated = [...prev.description];
                                         updated[index] = {
@@ -66,97 +106,98 @@ const TaskDetails = ({ editData, setEditData, user }) => {
                                             storeLink: e.target.value,
                                         };
                                         return { ...prev, description: updated };
-                                    })
-                                }
+                                    });
+                                }}
                             />
                         </div>
 
                         {/* Reference Link */}
                         {!(isEmployee && desc.referenceLinkEnabled) && (
-                        <div>
-                            <label className="flex items-center text-gray-600 text-sm font-medium mb-1">
-                                Reference Link
-                            </label>
-                            <div className="flex items-center">
-                                {!isEmployee && (
-                                    <input
-                                        type="checkbox"
-                                        className="mr-2 w-4 h-4"
-                                        checked={!!desc.referenceLinkEnabled}
-                                        onChange={(e) =>
+                            <div>
+                                <label className="flex items-center text-gray-600 text-sm font-medium mb-1">
+                                    Reference Link
+                                </label>
+                                <div className="flex items-center">
+                                    {!isEmployee && (
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2 w-4 h-4"
+                                            checked={!!desc.referenceLinkEnabled}
+                                            onChange={(e) =>
+                                                setEditData((prev) => {
+                                                    const updated = [...prev.description];
+                                                    updated[index].referenceLinkEnabled = e.target.checked;
+                                                    return { ...prev, description: updated };
+                                                })
+                                            }
+                                        />
+                                    )}
+
+                                    <Input
+                                        type="text"
+                                        className={`w-full border rounded-lg px-3 py-2 text-sm transition focus:outline-none ${desc.referenceLinkEnabled
+                                            ? "bg-gray-100 cursor-not-allowed opacity-50"
+                                            : "focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                            }`}
+                                        value={desc.referenceLink || ""}
+                                        onChange={(e) => {
+                                            if (isEmployee || desc.referenceLinkEnabled) return;
                                             setEditData((prev) => {
                                                 const updated = [...prev.description];
-                                                updated[index].referenceLinkEnabled = e.target.checked;
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    referenceLink: e.target.value,
+                                                };
                                                 return { ...prev, description: updated };
-                                            })
-                                        }
+                                            });
+                                        }}
                                     />
-                                )}
 
-                                <Input
-                                    type="text"
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm transition focus:outline-none ${desc.referenceLinkEnabled
-                                        ? "bg-gray-100 cursor-not-allowed"
-                                        : "focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                                        }`}
-                                    value={desc.referenceLink || ""}
-                                    disabled={isEmployee || desc.referenceLinkEnabled}
-                                    onChange={(e) =>
-                                        setEditData((prev) => {
-                                            const updated = [...prev.description];
-                                            updated[index] = {
-                                                ...updated[index],
-                                                referenceLink: e.target.value,
-                                            };
-                                            return { ...prev, description: updated };
-                                        })
-                                    }
-                                />
-                            </div>
-                        </div>)}
+                                </div>
+                            </div>)}
 
                         {/* Figma Link */}
-                       {!(isEmployee && desc.figmaLinkDisabled) && (
-                        <div>
-                            <label className="flex items-center text-gray-600 text-sm font-medium mb-1">
-                                Figma Link
-                            </label>
-                            <div className="flex items-center">
-                                {!isEmployee && (
-                                    <input
-                                        type="checkbox"
-                                        className="mr-2 w-4 h-4"
-                                        checked={!!desc.figmaLinkDisabled}
-                                        onChange={(e) =>
+                        {!(isEmployee && desc.figmaLinkDisabled) && (
+                            <div>
+                                <label className="flex items-center text-gray-600 text-sm font-medium mb-1">
+                                    Figma Link
+                                </label>
+                                <div className="flex items-center">
+                                    {!isEmployee && (
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2 w-4 h-4"
+                                            checked={!!desc.figmaLinkDisabled}
+                                            onChange={(e) =>
+                                                setEditData((prev) => {
+                                                    const updated = [...prev.description];
+                                                    updated[index].figmaLinkDisabled = e.target.checked;
+                                                    return { ...prev, description: updated };
+                                                })
+                                            }
+                                        />
+                                    )}
+                                    <Input
+                                        type="text"
+                                        className={`w-full border rounded-lg px-3 py-2 text-sm transition focus:outline-none ${desc.figmaLinkDisabled
+                                            ? "bg-gray-100 cursor-not-allowed"
+                                            : "focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                            }`}
+                                        value={desc.figmaLink || ""}
+                                        onChange={(e) => {
+                                            if (isEmployee || desc.figmaLinkDisabled) return;
                                             setEditData((prev) => {
                                                 const updated = [...prev.description];
-                                                updated[index].figmaLinkDisabled = e.target.checked;
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    figmaLink: e.target.value,
+                                                };
                                                 return { ...prev, description: updated };
-                                            })
-                                        }
+                                            });
+                                        }}
                                     />
-                                )}
-                                <Input
-                                    type="text"
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm transition focus:outline-none ${desc.figmaLinkDisabled
-                                        ? "bg-gray-100 cursor-not-allowed"
-                                        : "focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                                        }`}
-                                    value={desc.figmaLink || ""}
-                                    disabled={isEmployee || desc.figmaLinkDisabled}
-                                    onChange={(e) =>
-                                        setEditData((prev) => {
-                                            const updated = [...prev.description];
-                                            updated[index] = {
-                                                ...updated[index],
-                                                figmaLink: e.target.value,
-                                            };
-                                            return { ...prev, description: updated };
-                                        })
-                                    }
-                                />
-                            </div>
-                        </div>)}
+                                </div>
+                            </div>)}
 
                         {/* Task Descriptions */}
                         <div>
@@ -177,50 +218,51 @@ const TaskDetails = ({ editData, setEditData, user }) => {
                                 disabled={isEmployee}
                             >
                                 {(desc.taskdescription || []).map((item, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-center gap-2 mb-2"
-                                    >
+                                    <div key={i} className="flex items-start gap-2 mb-2">
                                         {!isEmployee && (
-                                            <GripVertical size={18} className="handle cursor-grab active:cursor-grabbing" />
+                                            <GripVertical
+                                                size={18}
+                                                className="handle cursor-grab mt-2"
+                                            />
                                         )}
-                                        <Input
-                                            type="text"
-                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                                            value={item}
-                                            disabled={isEmployee}
-                                            onChange={(e) =>
+                                        <div
+                                            contentEditable={!isEmployee}
+                                            suppressContentEditableWarning
+                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2
+                                        text-sm focus:outline-none focus:ring-2 focus:ring-blue-400
+                                         min-h-[40px]"
+                                            onPaste={handlePaste}
+                                            onBlur={(e) => {
+                                                const html = e.currentTarget.innerHTML;
                                                 setEditData((prev) => {
                                                     const updated = [...prev.description];
                                                     const taskDesc = [...updated[index].taskdescription];
-                                                    taskDesc[i] = e.target.value;
-                                                    updated[index] = {
-                                                        ...updated[index],
-                                                        taskdescription: taskDesc,
-                                                    };
+                                                    taskDesc[i] = html;
+                                                    updated[index] = { ...updated[index], taskdescription: taskDesc };
                                                     return { ...prev, description: updated };
-                                                })
-                                            }
+                                                });
+                                            }}
+                                            dangerouslySetInnerHTML={{ __html: item }}
                                         />
+
                                         {!isEmployee && (
                                             <button
                                                 type="button"
-                                                className="px-3 py-1 text-red-600 font-medium rounded hover:bg-red-100 transition"
+                                                className="p-[5px] text-red-600 font-medium rounded hover:bg-red-100"
                                                 onClick={() =>
                                                     setEditData((prev) => {
                                                         const updated = [...prev.description];
-                                                        updated[index] = {
-                                                            ...updated[index],
-                                                            taskdescription: updated[index].taskdescription.filter(
+                                                        updated[index].taskdescription =
+                                                            updated[index].taskdescription.filter(
                                                                 (_, idx) => idx !== i
-                                                            ),
-                                                        };
+                                                            );
                                                         return { ...prev, description: updated };
                                                     })
                                                 }
                                             >
-                                                ✕
-                                            </button>)}
+                                                <X size={18} />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </ReactSortable>
@@ -303,7 +345,7 @@ const TaskDetails = ({ editData, setEditData, user }) => {
                                             onClick={() => setFullscreenImage(null)}
                                             className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold"
                                         >
-                                            ✕
+                                            <X size={18} />
                                         </button>
                                     </div>
                                 </div>

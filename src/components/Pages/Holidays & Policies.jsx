@@ -270,7 +270,7 @@ export default function HolidaysAndPolicies() {
                                                         )}
                                                     </div>
 
-                                                    <div className="flex items-center gap-3">
+                                                      {isHR && (<div className="flex items-center gap-3">
                                                         <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                                                             {item.type}
                                                         </span>
@@ -298,7 +298,7 @@ export default function HolidaysAndPolicies() {
                                                                 )
                                                             }
                                                         />
-                                                    </div>
+                                                    </div>)}
                                                 </div>
                                             ))}
                                         </div>

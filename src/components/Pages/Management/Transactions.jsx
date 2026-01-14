@@ -275,6 +275,7 @@ export default function Transactions() {
                                 <div className="mt-2 z-50">
                                     <DateRangePicker
                                         open={showDatePicker}
+                                        closeOnOutsideClick={true}
                                         onApply={(range) => {
                                             setSelectedRange(range);
                                             setShowDatePicker(false);

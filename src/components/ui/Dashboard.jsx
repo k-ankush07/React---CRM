@@ -7,10 +7,8 @@ function formatDate(date) {
 }
 
 export default function Dashboard() {
-
     const { data: user } = useUser();
     const { rangeType, setRangeType, start, end } = useDateRange();
-
     const today = new Date().toLocaleDateString("en-US", {
         weekday: "long",
         day: "numeric",

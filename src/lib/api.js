@@ -56,6 +56,14 @@ export const api = {
         path: `${BASE_URL}/api/project/add-status`,
         method: "POST",
       },
+      deleteStatus: {
+        path: `${BASE_URL}/api/project/delete-status`,
+        method: "DELETE",
+      },
+      projectName: {
+        path: (id) => `${BASE_URL}/api/projectName/${id}`,
+        method: "PUT",
+      },
     },
     getprojects: {
       path: `${BASE_URL}/api/get-projects`,

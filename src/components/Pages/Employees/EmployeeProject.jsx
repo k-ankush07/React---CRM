@@ -1,22 +1,14 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import EmployeeLayout from "../EmployeeLayout";
 import { useUser, useProjects, useUpdateProject } from "../../Use-auth";
 import ProjectList from "../../ui/ProjectList";
 import TaskEmployees from "../../ui/TaskEmployees";
 import TaskPriority from "../../ui/TaskPriority";
 import { useDateRange } from "../DateRangeContext";
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
-} from "@dnd-kit/sortable";
-import {
-  Calendar, Flag, CircleStop, Users, GripVertical, X, CircleDot
-} from "lucide-react";
-import { CSS } from "@dnd-kit/utilities";
+import { Calendar, Flag, CircleStop, Users, CircleDot, X, ClockFading, ChevronRight } from "lucide-react";
 import CommentsSection from "../../ui/CommentsSection ";
 import TaskDetails from "../../ui/TaskDetails ";
+import TaskTimeline from "../../ui/TaskTimeline ";
 
 const getStatusColor = (status) => {
   const colors = [
@@ -45,10 +37,12 @@ export default function EmployeeProject() {
   const { data: user } = useUser();
   const { data: projects = [], refetch } = useProjects();
   const updateProject = useUpdateProject();
+  const [collapsedStatuses, setCollapsedStatuses] = useState({});
   const [showDescriptionPopup, setShowDescriptionPopup] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [currentTask, setCurrentTask] = useState(null);
-  const [statuses, setStatuses] = useState([]);
+  const [status, setStatus] = useState([]);
+  const [projectStatuses, setProjectStatuses] = useState([]);
   const [editData, setEditData] = useState({
     title: "",
     description: [
@@ -63,19 +57,20 @@ export default function EmployeeProject() {
       },
     ],
     priority: "",
-    status: statuses,
+    status: status,
     assignedEmployees: [],
     dueDate: null
   });
-  const [status, setStatus] = useState([]);
-  const [taskOrder, setTaskOrder] = useState(() => {
-    const stored = localStorage.getItem("taskOrder");
-    return stored
-      ? JSON.parse(stored)
-      : { upcoming: [], progress: [], completed: [] };
-  });
   const [showStatusDropdownFor, setShowStatusDropdownFor] = useState(null);
   const [selectedTasks, setSelectedTasks] = useState({});
+  const textareaRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+    }
+  }, [editData.title]);
 
   // Close status dropdown when clicking outside
   useEffect(() => {
@@ -97,25 +92,19 @@ export default function EmployeeProject() {
       setStatus([]);
       return;
     }
-    const activeProject = projects.find((p) => p._id === activeProjectId);
-    if (!activeProject) {
+
+    const activeProject = projects.find(
+      (p) => p._id === activeProjectId
+    );
+
+    if (!activeProject?.statusTask) {
       setStatus([]);
       return;
     }
 
-    const activeStatuses = Object.keys(activeProject.statusTask || {});
-
-    setStatus(activeStatuses);
+    setStatus(Object.keys(activeProject.statusTask));
   }, [projects, activeProjectId]);
 
-  // Configure drag sensors for smooth drag interaction
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    })
-  );
-
-  // Open task details popup with all task information
   const handleOpenTask = (task) => {
     setCurrentTask(task);
 
@@ -127,8 +116,8 @@ export default function EmployeeProject() {
       dueDate: task.dueDate ? new Date(task.dueDate) : null,
       assignedEmployees: task.assignedEmployees || [],
       comments: task.comments || [],
+      timeline: task.timeline || []
     };
-
     setEditData(data);
     setShowDescriptionPopup(true);
   };
@@ -139,34 +128,32 @@ export default function EmployeeProject() {
     (newStatus, singleTask = null) => {
       const currentUserName = user?.fullName || "Unknown";
 
-      // Gather tasks to update
       const selectedTaskObjects = singleTask
         ? [singleTask]
         : Object.values(selectedTasks)
           .flat()
-          .map(id => {
+          .map((id) => {
             for (const project of localProjects) {
               const task = Object.values(project.statusTask || {})
                 .flat()
-                .find(t => t._id === id);
+                .find((t) => t._id === id);
               if (task) return { ...task, projectId: project._id };
             }
             return null;
           })
           .filter(Boolean);
 
-      // Deduplicate tasks
       const uniqueTasks = Array.from(
-        new Map(selectedTaskObjects.map(t => [t._id, t])).values()
+        new Map(selectedTaskObjects.map((t) => [t._id, t])).values()
       );
 
       uniqueTasks.forEach((task) => {
-        const project = localProjects.find(p => p._id === task.projectId);
+        const project = localProjects.find((p) => p._id === task.projectId);
         if (!project) return;
 
         const latestTask = Object.values(project.statusTask || {})
           .flat()
-          .find(t => t._id === task._id);
+          .find((t) => t._id === task._id);
 
         if (!latestTask) return;
 
@@ -177,10 +164,7 @@ export default function EmployeeProject() {
         if (latestTask.status !== newStatus) {
           const commentText = `${currentUserName} changed status from ${latestTask.status} to ${newStatus}`;
 
-          const isDuplicate = updatedComments.some(
-            (c) => c.text === commentText
-          );
-
+          const isDuplicate = updatedComments.some((c) => c.text === commentText);
           if (!isDuplicate) {
             updatedComments.push({
               text: commentText,
@@ -204,155 +188,68 @@ export default function EmployeeProject() {
         );
       });
 
-      setSelectedTasks((prev) => {
-        const updated = { upcoming: [], progress: [], completed: [] };
-        Object.keys(prev).forEach((status) => {
-          updated[status] = prev[status].filter(
-            (id) => !uniqueTasks.some((t) => t._id === id)
-          );
-        });
-        return updated;
-      });
-
+      setSelectedTasks({});
       refetch();
     },
     [selectedTasks, user, updateProject, refetch, localProjects]
   );
 
-  // Draggable task component with sorting support
-  const SortableTask = ({ task }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } =
-      useSortable({ id: task._id });
+  const handleTimelineUpdate = useCallback(
+    async (task, type) => {
+      if (!user?.userId) return;
 
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
+      const running = task.timeline?.find(
+        (t) => t.employeeId === user.userId && !t.endTime
+      );
 
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        className="flex items-center justify-between text-[14px] bg-white px-3 py-2 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer mb-2"
-      >
-        <div
-          className="w-[30px] flex items-center justify-center rounded-full bg-[#c4c4c4] text-white mr-[10px]"
-          {...listeners}
-        >
-          <GripVertical size={16} />
-        </div>
+      try {
+        let timelineUpdate = {};
+        let commentText = "";
 
-        <div
-          className="w-2/5 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-gray-800  hover:text-blue-700 hover:underline"
-          title={task.title}
-          onClick={() => handleOpenTask(task)}
-        >
-          {task.title || "-"}
-        </div>
+        if (type === "start" && !running) {
+          timelineUpdate = {
+            employeeId: user.userId,
+            startTime: new Date(),
+          };
+          commentText = `${user.fullName} started working on the task`;
+        } else if (type === "stop" && running) {
+          timelineUpdate = {
+            employeeId: user.userId,
+            endTime: new Date(),
+          };
+          commentText = `${user.fullName} stopped working on the task`;
+        }
 
-        <div className="w-1/5">
-          <TaskEmployees
-            selected={task.assignedEmployees?.map((e) => e._id) || []}
-            employees={task.assignedEmployees || []}
-            showDropdown={false}
-            onChange={() => { }}
-          />
-        </div>
+        if (!timelineUpdate.employeeId) return;
 
-        <div className="w-1/5 text-[14px] text-gray-600">
-          {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
-        </div>
-        <div className="w-1/5">
-          <TaskPriority value={task.priority} showclear={false} />
-        </div>
+        const updatedComments = Array.isArray(task.comments)
+          ? [...task.comments]
+          : [];
 
-        <div className="w-1/5 relative">
-          <div
+        if (!updatedComments.some((c) => c.text === commentText)) {
+          updatedComments.push({
+            text: commentText,
+            createdBy: user.fullName,
+            createdAt: new Date(),
+          });
+        }
 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (task.status !== "completed") {
-                setShowStatusDropdownFor(prev =>
-                  prev === task._id ? null : task._id
-                );
-              }
-            }}
-          >
-            {task.status || "-"}
-          </div>
-          {showStatusDropdownFor === task._id && (
-            <div
-              id={`status-dropdown-${task._id}`}
-              className="absolute left-0 mt-2 bg-white border rounded shadow p-2 z-50 min-w-[120px]"
-            >
-              {status.map((status) => {
-                const isActive = status === task.status;
+        await updateProject.mutateAsync({
+          id: task.projectId,
+          taskId: task._id,
+          status: task.status,
+          timelineUpdate,
+          comments: updatedComments,
+        });
 
-                return (
-                  <div
-                    key={status}
-                    onClick={() => {
-                      handleBulkStatusUpdate(status, task);
-                      setShowStatusDropdownFor(null);
-                    }}
-                    className={`cursor-pointer font-normal text-sm px-2 py-1 rounded mt-2
-                   ${getStatusColor(status)}
-                   ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""}
-                      `}
-                  >
-                    {status}
-                  </div>
-                );
-              })}
-            </div>
-
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Toggle task selection for bulk operations
-  const toggleTaskSelection = useCallback((status, id) => {
-    setSelectedTasks((prev) => {
-      const exists = prev[status].includes(id);
-      return {
-        ...prev,
-        [status]: exists
-          ? prev[status].filter((t) => t !== id)
-          : [...prev[status], id],
-      };
-    });
-  }, []);
-
-  // Memoize projects to optimize performance
-
-  // Handle drag end event and save new order to localStorage
-  const handleDragEnd = useCallback(
-    (status, event) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const current = taskOrder[status];
-      const oldIndex = current.indexOf(active.id);
-      const newIndex = current.indexOf(over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const reordered = arrayMove(current, oldIndex, newIndex);
-
-      // Update state and persist to localStorage
-      setTaskOrder((prev) => {
-        const updated = { ...prev, [status]: reordered };
-        localStorage.setItem("taskOrder", JSON.stringify(updated));
-        return updated;
-      });
+        refetch();
+      } catch (err) {
+        console.error("Timeline update failed:", err);
+      }
     },
-    [taskOrder]
+    [user, updateProject, refetch]
   );
 
-  // Render all tasks for a given status with filtering and sorting
   const renderTasks = useCallback(
     (status) => {
       let allTasks = [];
@@ -364,7 +261,7 @@ export default function EmployeeProject() {
               ...task,
               projectId: project._id,
               projectName: project.projectName,
-              status, // keep track of status
+              status,
             });
           });
         }
@@ -376,92 +273,159 @@ export default function EmployeeProject() {
 
       if (!allTasks.length) return null;
 
-      const currentOrder = taskOrder[status] || [];
-      const ids = allTasks.map((t) => t._id);
-
-      const mergedOrder = [
-        ...currentOrder,
-        ...ids.filter((id) => !currentOrder.includes(id)),
-      ];
-
-      if (mergedOrder.length !== currentOrder.length) {
-        setTaskOrder((prev) => {
-          const updated = { ...prev, [status]: mergedOrder };
-          localStorage.setItem("taskOrder", JSON.stringify(updated));
-          return updated;
-        });
-      }
-
       return (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={(e) => handleDragEnd(status, e)}
-        >
-          <SortableContext items={mergedOrder} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {/* Table header */}
-              <div className="flex px-3 py-2 mt-[10px] rounded-md font-medium text-gray-500 text-[14px]">
-                <div className="w-2/5">Name</div>
-                <div className="w-1/5">Assigned</div>
-                <div className="w-1/5">Due Date</div>
-                <div className="w-1/5">Priority</div>
-                <div className="w-1/5">Status</div>
+        <div className="space-y-2">
+          <div className="flex px-3 py-2 mt-[10px] rounded-md font-medium text-gray-500 text-[14px]">
+            <div className="w-2/5">Name</div>
+            <div className="w-1/5">Assigned</div>
+            <div className="w-1/5">Due Date</div>
+            <div className="w-1/5">Priority</div>
+            <div className="w-1/5">Status</div>
+            <div className="w-1/5">Track time</div>
+          </div>
+
+          {allTasks.map((task) => (
+            <div
+              key={task._id}
+              className="flex items-center justify-between text-[14px] bg-white px-3 py-2 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer mb-2"
+            >
+              <div
+                className="w-2/5 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-gray-800 hover:text-blue-700 hover:underline"
+                title={task.title}
+                onClick={() => handleOpenTask(task)}
+              >
+                {task.title || "-"}
               </div>
 
-              {/* Render each task in order */}
-              {mergedOrder.map((id) => {
-                const task = allTasks.find((t) => t._id === id);
-                return task ? (
-                  <SortableTask
-                    key={task._id}
-                    task={task}
-                    status={status}
-                    toggleTaskSelection={toggleTaskSelection}
-                    selectedTasks={selectedTasks}
+              <div className="w-1/5">
+                <TaskEmployees
+                  selected={task.assignedEmployees?.map((e) => e._id) || []}
+                  employees={task.assignedEmployees || []}
+                  showDropdown={false}
+                  onChange={() => { }}
+                />
+              </div>
+
+              <div className="w-1/5 text-[14px] text-gray-600">
+                {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
+              </div>
+              <div className="w-1/5">
+                <TaskPriority value={task.priority} showclear={false} />
+              </div>
+
+              <div className="w-1/5 relative">
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (task.status !== "completed") {
+                      setShowStatusDropdownFor((prev) => (prev === task._id ? null : task._id));
+                    }
+                  }}
+                  className="inline-block"
+                >
+                  {task.status || "-"}
+                </div>
+                {showStatusDropdownFor === task._id && (
+                  <div
+                    id={`status-dropdown-${task._id}`}
+                    className="absolute left-0 mt-2 bg-white border rounded shadow p-2 z-50 min-w-[120px]"
+                  >
+                    {projectStatuses.map((s) => {
+                      const isActive = s === task.status;
+                      return (
+                        <div
+                          key={s}
+                          onClick={() => {
+                            handleBulkStatusUpdate(s, task);
+                            setShowStatusDropdownFor(null);
+                          }}
+                          className={`cursor-pointer font-normal text-sm px-2 py-1 rounded mt-2 ${getStatusColor(s)} ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""
+                            }`}
+                        >
+                          {s}
+                        </div>
+                      );
+                    })}
+
+                  </div>
+                )}
+
+              </div>
+              <div className="w-1/5 flex">
+                <div className="inline-flex gap-[10px] items-center">
+                  <TaskTimeline task={task} user={user} handleTimelineUpdate={handleTimelineUpdate} showControls={true}
                   />
-                ) : null;
-              })}
+                </div>
+              </div>
             </div>
-          </SortableContext>
-        </DndContext>
+          ))}
+        </div>
       );
     },
-    [localProjects, start, end, activeProjectId, taskOrder, sensors, selectedTasks]
+    [localProjects, start, end, activeProjectId, status, showStatusDropdownFor, handleBulkStatusUpdate]
   );
 
+  const toggleStatus = (status) => {
+    setCollapsedStatuses((prev) => ({
+      ...prev,
+      [status]: !prev[status],
+    }));
+  };
 
-  // Render section with status header and tasks
   const renderSection = (status) => (
     <div className="mt-[30px]">
-      <h2
-        className={`cursor-pointer font-normal inline-block text-sm px-2 py-1 rounded ${getStatusColor(status)}`}
-      >
-        {status.toUpperCase()}
-      </h2>
-
-      {renderTasks(status)}
+      <div className="flex items-center gap-2">
+        <ChevronRight
+          size={18}
+          color="grey"
+          className={`cursor-pointer transition-transform duration-200 ${collapsedStatuses[status] ? "" : "rotate-90"
+            }`}
+          onClick={() => toggleStatus(status)}
+        />
+        <h2
+          className={`cursor-pointer font-normal inline-block text-sm px-2 py-1 rounded ${getStatusColor(status)}`}
+        >
+          {status.toUpperCase()}
+        </h2>
+      </div>
+      {!collapsedStatuses[status] && renderTasks(status)}
     </div>
   );
 
   useEffect(() => {
-    const allStatuses = new Set();
-    projects.forEach((project) => {
-      Object.values(project.statusTask || {}).forEach((tasks) => {
-        tasks.forEach((task) => allStatuses.add(task.status));
-      });
+    if (!activeProjectId || !projects.length) {
+      setProjectStatuses([]);
+      return;
+    }
+
+    const activeProject = projects.find(
+      (p) => p._id?.toString() === activeProjectId?.toString()
+    );
+
+    if (!activeProject?.statusTask) {
+      setProjectStatuses([]);
+      return;
+    }
+
+    const statuses = Object.keys(activeProject.statusTask).filter((status) => {
+      const tasks = activeProject.statusTask[status] || [];
+
+      return tasks.some(
+        (task) =>
+          Array.isArray(task.assignedEmployees) &&
+          task.assignedEmployees.length > 0
+      );
     });
-    setStatuses(Array.from(allStatuses));
-  }, [projects]);
+
+    setProjectStatuses(statuses);
+  }, [projects, activeProjectId]);
+
 
   return (
     <EmployeeLayout>
       <div className="relative h-[90.7vh]">
-        <div
-          className="absolute w-full h-[100%] opacity-[0.1] bg-[url('https://www.hubsyntax.com/uploads/prodcutpages.webp')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"
-        ></div>
+        <div className="absolute w-full h-[100%] opacity-[0.1] bg-[url('https://www.hubsyntax.com/uploads/prodcutpages.webp')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"></div>
         <div className="relative z-20 h-full overflow-y-auto p-6">
-          {/* Project list for filtering */}
           <ProjectList
             projects={projects}
             activeProjectId={activeProjectId}
@@ -469,17 +433,10 @@ export default function EmployeeProject() {
             currentUser={user}
           />
 
-          {/* Display tasks organized by status when project is selected */}
-          {activeProjectId && (
-            <>
-              {statuses.map((status) => (
-                <div key={status}>{renderSection(status)}</div>
-              ))}
-
-            </>
-          )}
-
-          {/* Task details modal popup */}
+          {activeProjectId &&
+            projectStatuses.map((s) => (
+              <div key={s}>{renderSection(s)}</div>
+            ))}
           {showDescriptionPopup && currentTask && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded p-6 w-[90%] h-[90vh] shadow-lg relative overflow-y-auto max-w-[90%]">
@@ -488,72 +445,52 @@ export default function EmployeeProject() {
                     <h2 className="mb-4 text-gray-500 font-light inline-flex gap-[5px] items-center justify-center text-[16px] p-[5px] w-[80px] border border-gray-300 rounded-md">
                       <CircleDot size={12} /> Task
                     </h2>
-                    <input
-                      className="w-full rounded px-2 py-1 mb-4 text-[25px] border-gray-400 outline-none focus:ring-1 focus:ring-gray-200 resize-none"
+                    <textarea
+                      ref={textareaRef}
+                      className="w-full rounded px-2 py-1 mb-4 text-[25px] border-gray-400 outline-none focus:ring-1 focus:ring-gray-200 resize-none overflow-hidden"
                       value={editData.title}
+                      rows={1}
                       placeholder="Enter text..."
-                      readOnly
                     />
 
-                    {/* Task metadata section */}
-                    <div>
-                      {/* Status */}
+                    {/* Task metadata */}
+                    <div className="text-[14px]">
                       <div className="flex items-center gap-[50px] mb-4">
                         <span className="flex items-center gap-[5px] min-w-[150px]">
                           <CircleStop size={16} />
-                          <span className="font-medium text-gray-700">
-                            Status
-                          </span>
+                          <span className="font-medium text-gray-700">Status</span>
                         </span>
-                        <span
-                          className={`px-2 py-1 rounded text-sm font-semibold uppercase ${getStatusColor(editData.status || "")}`}
-                        >
+                        <span className={`px-2 py-1 rounded text-sm font-semibold uppercase ${getStatusColor(editData.status || "")}`}>
                           {editData.status || "-"}
                         </span>
                       </div>
 
-                      {/* Due date */}
                       <div className="flex items-center gap-[50px] mb-4">
                         <span className="flex items-center gap-[5px] min-w-[150px]">
                           <Calendar size={16} />
-                          <span className="font-medium text-gray-700">
-                            Dates
-                          </span>
+                          <span className="font-medium text-gray-700">Dates</span>
                         </span>
                         <div className="relative date-filter">
-                          <div
-                            className="w-full border rounded px-2 py-1 cursor-pointer hover:bg-gray-50" >
-                            {editData.dueDate
-                              ? new Date(editData.dueDate).toLocaleDateString()
-                              : "Select due date"}
+                          <div className="w-full border rounded px-2 py-1 cursor-pointer hover:bg-gray-50">
+                            {editData.dueDate ? new Date(editData.dueDate).toLocaleDateString() : "Select due date"}
                           </div>
                         </div>
                       </div>
 
-                      {/* Priority */}
                       <div className="flex items-center gap-[50px] mb-4">
                         <span className="flex items-center gap-[5px] min-w-[150px]">
                           <Flag size={16} />
-                          <span className="font-medium text-gray-700">
-                            Priority
-                          </span>
+                          <span className="font-medium text-gray-700">Priority</span>
                         </span>
                         <div className="relative">
-                          <TaskPriority
-                            value={editData.priority}
-                            onChange={({})}
-                            showclear={false}
-                          />
+                          <TaskPriority value={editData.priority} onChange={({})} showclear={false} />
                         </div>
                       </div>
 
-                      {/* Assigned employees */}
                       <div className="flex items-center gap-[50px] mb-4">
                         <span className="flex items-center gap-[5px] min-w-[150px]">
                           <Users size={16} />
-                          <span className="font-medium text-gray-700">
-                            Assigned
-                          </span>
+                          <span className="font-medium text-gray-700">Assigned</span>
                         </span>
                         <div className="relative flex items-center gap-[10px]">
                           <TaskEmployees
@@ -563,25 +500,34 @@ export default function EmployeeProject() {
                           />
                         </div>
                       </div>
+                      <div className="flex items-center gap-[50px] mb-4">
+                        <span className="flex items-center gap-[5px] min-w-[150px]">
+                          <ClockFading size={16} />
+                          <span className="font-medium text-gray-700">Track time</span>
+                        </span>
+                        <div className="relative flex items-center gap-[10px]">
+                          <TaskTimeline
+                            task={currentTask}
+                            user={user}
+                            handleTimelineUpdate={handleTimelineUpdate}
+                            showControls={false}
+                          />
+                        </div>
+                      </div>
+
                     </div>
 
                     <div className="w-full mx-auto mt-10">
                       <TaskDetails editData={editData} setEditData={setEditData} user={user} />
                     </div>
 
-                    {/* Close button */}
-                    <button onClick={() => setShowDescriptionPopup(false)}
-                      className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold transition-colors"
-                    >
+                    <button onClick={() => setShowDescriptionPopup(false)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold transition-colors">
                       <X size={18} />
                     </button>
                   </div>
 
-                  {/* Right panel - Activity/Comments section */}
                   <div className="w-[30%]">
-                    <div className="p-[20px] border-b border-gray-400 text-sm font-medium">
-                      Activity
-                    </div>
+                    <div className="p-[20px] border-b border-gray-400 text-sm font-medium">Activity</div>
                     <div className="p-[20px] text-[12px] bg-[#f9f9f9]">
                       <CommentsSection comments={editData.comments || []} />
                     </div>

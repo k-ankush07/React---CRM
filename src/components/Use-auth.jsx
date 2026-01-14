@@ -323,12 +323,16 @@ export function useDeleteHoliday() {
 
 export function useDeleteTask() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ projectId, taskId }) => {
-      const res = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks/${taskId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${api.auth.projects.update.path(projectId)}/tasks/${taskId}`, 
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
       const data = await res.json();
 
@@ -431,7 +435,7 @@ export function useUpload() {
       }
 
       const data = await res.json();
-      return data; 
+      return data;
     },
   });
 
@@ -505,3 +509,64 @@ export const useAddProjectStatus = () => {
     onSuccess: () => queryClient.invalidateQueries(["projects"]),
   });
 };
+
+export function useDeleteStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, status }) => {
+      const res = await fetch(api.auth.projects.deleteStatus.path, {
+        method: api.auth.projects.deleteStatus.method, 
+        headers: {
+          "Content-Type": "application/json", 
+        },
+        credentials: "include",
+        body: JSON.stringify({ projectId, status }), 
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete status");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["projects"]), 
+  });
+}
+
+export function useUpdateProjectName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, projectName }) => {
+      const res = await fetch(api.projectName.path(projectId), {
+        method: api.projectName.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ projectName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update project name");
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["projects"]),
+  });
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId }) => {
+      const res = await fetch(api.auth.projects.delete.path(projectId), {
+        method: api.auth.projects.delete.method,
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete project");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["projects"]);
+    },
+  });
+}

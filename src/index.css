@@ -5,58 +5,58 @@
 @tailwind utilities;
 
 @font-face {
-    font-family: "Grandis Extended Medium";
-    src: url("./assets/fonts/534a3938931652c26019b76aff4e3679.eot");
-    src: url("./assets/fonts/534a3938931652c26019b76aff4e3679.eot?#iefix") format("embedded-opentype"),
-        url("./assets/fonts/534a3938931652c26019b76aff4e3679.woff") format("woff"),
-        url("./assets/fonts/534a3938931652c26019b76aff4e3679.woff2") format("woff2"),
-        url("./assets/fonts/534a3938931652c26019b76aff4e3679.ttf") format("truetype"),
-        url("./assets/fonts/534a3938931652c26019b76aff4e3679.svg#Grandis Extended Medium") format("svg");
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
+  font-family: "Grandis Extended Medium";
+  src: url("./assets/fonts/534a3938931652c26019b76aff4e3679.eot");
+  src: url("./assets/fonts/534a3938931652c26019b76aff4e3679.eot?#iefix") format("embedded-opentype"),
+    url("./assets/fonts/534a3938931652c26019b76aff4e3679.woff") format("woff"),
+    url("./assets/fonts/534a3938931652c26019b76aff4e3679.woff2") format("woff2"),
+    url("./assets/fonts/534a3938931652c26019b76aff4e3679.ttf") format("truetype"),
+    url("./assets/fonts/534a3938931652c26019b76aff4e3679.svg#Grandis Extended Medium") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
 body {
-    font-family: 'Grandis Extended Medium', sans-serif;
+  font-family: 'Grandis Extended Medium', sans-serif;
 }
 
 .input {
-    @apply w-full border rounded px-2 py-1 text-sm;
+  @apply w-full border rounded px-2 py-1 text-sm;
 }
 
 .date-filter .range-date-picker {
-    position: absolute;
-    left: 0 !important;
+  position: absolute;
+  left: 0 !important;
 }
 
 .taskEmployees-container .custom-dropdown .employes-dropdown {
-    left: -51px;
+  left: -51px;
 }
 
 .relative.task-dropdown .employes-dropdown {
-    top: -281px;
+  top: -281px;
 }
 
 .bulkdate-calender .calender-container {
-    top: -327px;
-    color: black;
+  top: -327px;
+  color: black;
 }
 
 .smart-date-task .date-formatess {
-    color: black;
+  color: black;
 }
 
 .comment-dropdown .employes-dropdown {
-    left: -166px;
-    top: -265px;
+  left: -166px;
+  top: -265px;
 }
 
 .comment-dropdown svg {
-    width: 36px !important;
-    size: 32px !important;
-    height: 36px !important;
-    padding: 7px;
+  width: 36px !important;
+  size: 32px !important;
+  height: 36px !important;
+  padding: 7px;
 }
 
 .calendar {
@@ -64,7 +64,7 @@ body {
   padding: 16px;
   border-radius: 16px;
   background: white;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   font-family: system-ui, sans-serif;
 }
 
@@ -132,19 +132,20 @@ body {
 }
 
 .calendar-day.today {
-  background: #22c55e !important; 
+  background: #22c55e !important;
   color: white !important;
   font-weight: 700;
   border: 2px solid #16a34a;
-  box-shadow: 0 6px 12px rgba(34,197,94,0.35);
+  box-shadow: 0 6px 12px rgba(34, 197, 94, 0.35);
 }
+
 .calendar-day.today {
-  border: 2px solid #22c55e; 
+  border: 2px solid #22c55e;
   background: #d1fae5;
 }
 
 .calendar-day.selected {
-  background: #8bd4f4; 
+  background: #8bd4f4;
   color: white;
   font-weight: 700;
   border: 2px solid #8bd4f4;
@@ -153,7 +154,7 @@ body {
 
 .date-label {
   font-size: 13px;
-  color: #6b7280;       
+  color: #6b7280;
   letter-spacing: 0.3px;
   font-weight: 500;
   margin-bottom: 6px;
@@ -161,36 +162,37 @@ body {
 }
 
 .date-label span {
-  color: #111827;          
+  color: #111827;
   font-weight: 600;
 }
 
 .date-popup .calender-container {
-    top: 0;
+  top: 0;
 }
 
 .date-popup {
-    align-items: baseline;
+  align-items: baseline;
 }
 
 .custom-quill-container {
-  border: 1px solid #d1d5db; 
-  border-radius: 0.5rem; 
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   overflow: hidden;
   transition: border-color 0.2s;
 }
 
 .custom-quill-container:focus-within {
-  border-color: #fbe5e9; 
+  border-color: #fbe5e9;
   box-shadow: 0 0 0 2px rgba(251, 229, 233, 0.3);
 }
 
 .custom-quill-editor .ql-editor {
-  min-height: 8rem; 
-  font-size: 0.875rem; 
+  min-height: 8rem;
+  font-size: 0.875rem;
   line-height: 1.5rem;
-  padding: 0.75rem; 
+  padding: 0.75rem;
 }
+
 .custom-quill-editor .ql-toolbar {
   border-bottom: 1px solid #e5e7eb;
   background-color: #f9fafb;
@@ -199,35 +201,44 @@ body {
 
 .custom-quill-editor .ql-toolbar .ql-picker-label:hover,
 .custom-quill-editor .ql-toolbar button:hover {
-  background-color: #fdf9fb; 
+  background-color: #fdf9fb;
 }
 
 .custom-quill-editor .ql-toolbar .ql-active {
-  background-color: #fbe5e9; 
+  background-color: #fbe5e9;
 }
 
 .custom-quill-editor .ql-editor.ql-blank::before {
-  color: #9ca3af; 
+  color: #9ca3af;
   font-style: italic;
 }
 
 .daterangepicker {
   font-family: 'Inter', sans-serif;
-  background-color: #ffffff; 
-  border-radius: 0.5rem; 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
-  border: 1px solid #e5e7eb; 
-  z-index: 9999 !important; 
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  z-index: 9999 !important;
+  margin-top: 0 !important;
+}
+
+.daterangepicker::before {
+  display: none !important;
+}
+
+.daterangepicker::after {
+  display: none !important;
 }
 
 .daterangepicker .drp-calendar {
-  border: none; 
+  border: none;
   border-radius: 0.5rem;
   background-color: #f9fafb;
 }
 
 .daterangepicker .drp-calendar th {
-  color: #6b7280; 
+  color: #6b7280;
   font-weight: 500;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -239,7 +250,7 @@ body {
 }
 
 .daterangepicker td.available:hover {
-  background-color: #e0f2fe; 
+  background-color: #e0f2fe;
   border-radius: 0.25rem;
 }
 
@@ -260,8 +271,8 @@ body {
 }
 
 .daterangepicker .ranges li:hover {
-  background-color: #f3f4f6; 
-  color: #0f8a00; 
+  background-color: #f3f4f6;
+  color: #0f8a00;
 }
 
 .daterangepicker .drp-buttons .btn {
@@ -272,7 +283,7 @@ body {
 }
 
 .daterangepicker .drp-buttons .applyBtn {
-  background-color: #0f8a00; 
+  background-color: #0f8a00;
   color: #ffffff;
   border: none;
 }
@@ -282,7 +293,7 @@ body {
 }
 
 .daterangepicker .drp-buttons .cancelBtn {
-  background-color: #f3f4f6; 
+  background-color: #f3f4f6;
   color: #111827;
   border: none;
 }
@@ -326,10 +337,28 @@ body {
 }
 
 .scrollbar-none {
-  -ms-overflow-style: none;     
-  scrollbar-width: none;     
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .scrollbar-none::-webkit-scrollbar {
-  display: none;                
+  display: none;
+}
+
+.btn-wrap {
+  padding: 0;
+  border: 0;
+}
+
+
+button.popup-text {
+  padding: 4px 11px !important;
+  height: 10px;
+  min-height: 31px !important;
+  float: right;
+  font-size: 12px;
+}
+
+.rdp-month {
+    padding-left: 12px;
 }
