@@ -5,7 +5,7 @@ import ProjectList from "../../ui/ProjectList";
 import TaskEmployees from "../../ui/TaskEmployees";
 import TaskPriority from "../../ui/TaskPriority";
 import { useDateRange } from "../DateRangeContext";
-import { Calendar, Flag, CircleStop, Users, CircleDot, X, ClockFading, ChevronRight } from "lucide-react";
+import { Calendar, Flag, CircleStop, Users, CircleDot, X, ClockFading, ChevronRight, CircleCheck } from "lucide-react";
 import CommentsSection from "../../ui/CommentsSection ";
 import TaskDetails from "../../ui/TaskDetails ";
 import TaskTimeline from "../../ui/TaskTimeline ";
@@ -289,6 +289,9 @@ export default function EmployeeProject() {
               key={task._id}
               className="flex items-center justify-between text-[14px] bg-white px-3 py-2 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer mb-2"
             >
+              <div className="flex items-center justify-center rounded-full bg-[#299764] text-white mr-[10px]">
+                <CircleCheck size={16} />
+              </div>
               <div
                 className="w-2/5 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-gray-800 hover:text-blue-700 hover:underline"
                 title={task.title}
@@ -346,7 +349,6 @@ export default function EmployeeProject() {
                         </div>
                       );
                     })}
-
                   </div>
                 )}
 
@@ -372,25 +374,34 @@ export default function EmployeeProject() {
     }));
   };
 
-  const renderSection = (status) => (
-    <div className="mt-[30px]">
-      <div className="flex items-center gap-2">
-        <ChevronRight
-          size={18}
-          color="grey"
-          className={`cursor-pointer transition-transform duration-200 ${collapsedStatuses[status] ? "" : "rotate-90"
-            }`}
-          onClick={() => toggleStatus(status)}
-        />
-        <h2
-          className={`cursor-pointer font-normal inline-block text-sm px-2 py-1 rounded ${getStatusColor(status)}`}
-        >
-          {status.toUpperCase()}
-        </h2>
+  const renderSection = (status) => {
+    const tasks = localProjects
+      .find(p => p._id === activeProjectId)
+      ?.statusTask?.[status] || [];
+
+    if (!tasks.length) return null;
+
+    return (
+      <div className="mt-[30px]">
+        <div className="flex items-center gap-2">
+          <ChevronRight
+            size={18}
+            color="grey"
+            className={`cursor-pointer transition-transform duration-200 ${collapsedStatuses[status] ? "" : "rotate-90"
+              }`}
+            onClick={() => toggleStatus(status)}
+          />
+          <h2
+            className={`cursor-pointer font-normal inline-block text-sm px-2 py-1 rounded ${getStatusColor(status)}`}
+          >
+            {status.toUpperCase()}
+          </h2>
+        </div>
+        {!collapsedStatuses[status] && renderTasks(status)}
       </div>
-      {!collapsedStatuses[status] && renderTasks(status)}
-    </div>
-  );
+    );
+  };
+
 
   useEffect(() => {
     if (!activeProjectId || !projects.length) {
@@ -407,19 +418,9 @@ export default function EmployeeProject() {
       return;
     }
 
-    const statuses = Object.keys(activeProject.statusTask).filter((status) => {
-      const tasks = activeProject.statusTask[status] || [];
-
-      return tasks.some(
-        (task) =>
-          Array.isArray(task.assignedEmployees) &&
-          task.assignedEmployees.length > 0
-      );
-    });
-
+    const statuses = Object.keys(activeProject.statusTask);
     setProjectStatuses(statuses);
   }, [projects, activeProjectId]);
-
 
   return (
     <EmployeeLayout>

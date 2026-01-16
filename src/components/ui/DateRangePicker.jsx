@@ -4,7 +4,7 @@ import "daterangepicker/daterangepicker.css";
 import "daterangepicker";
 import moment from "moment";
 
-export default function DateRangePicker({ onApply, open }) {
+export default function DateRangePicker({ onApply, open, selectedRange }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -13,7 +13,7 @@ export default function DateRangePicker({ onApply, open }) {
     $input.daterangepicker(
       {
         opens: "right",
-        autoUpdateInput: true,
+        autoUpdateInput: false,
         alwaysShowCalendars: true,
         locale: {
           format: "DD-MM-YYYY",
@@ -31,29 +31,40 @@ export default function DateRangePicker({ onApply, open }) {
         },
       },
       function (start, end) {
-        onApply?.({ startDate: start.toDate(), endDate: end.toDate() });
+        onApply?.({
+          startDate: start.toDate(),
+          endDate: end.toDate(),
+        });
       }
     );
 
     return () => {
       $input.data("daterangepicker")?.remove();
     };
-  }, [onApply]);
+  }, []); 
+
 
   useEffect(() => {
-    if (open) {
-      $(inputRef.current).data("daterangepicker")?.show();
+    const picker = $(inputRef.current).data("daterangepicker");
+    if (!picker) return;
+
+    if (selectedRange) {
+      picker.setStartDate(moment(selectedRange.startDate));
+      picker.setEndDate(moment(selectedRange.endDate));
     }
-  }, [open]);
+
+    if (open) {
+      picker.show();
+    }
+  }, [open, selectedRange]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative">
       <input
         ref={inputRef}
         type="text"
-        className="border rounded-md px-3 py-2 text-sm w-64 cursor-pointer"
-        placeholder="Select date range or use presets"
         readOnly
+        className="absolute opacity-0 pointer-events-none w-0 h-0"
       />
     </div>
   );

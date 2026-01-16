@@ -1,19 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash, Pencil, X } from "lucide-react";
 import { useDateRange } from "../Pages/DateRangeContext";
-import { useUpdateProjectName, useDeleteProject } from "../Use-auth";
+import { useUpdateProjectName, useDeleteProject, useAddProjectStatus } from "../Use-auth";
 import { Input } from "./Input";
 
 const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, currentUser }) => {
   const { start, end } = useDateRange();
-  const [editingProject, setEditingProject] = useState(null); 
+  const [editingProject, setEditingProject] = useState(null);
   const [newProjectName, setNewProjectName] = useState("");
 
   const updateProjectNameMutation = useUpdateProjectName();
   const deleteProjectMutation = useDeleteProject();
+  const addStatusMutation = useAddProjectStatus();
+  const isEmployee = currentUser.role === "employee";
+
+  useEffect(() => {
+    if (!activeProjectId || !projects.length) return;
+    if (isEmployee) return;
+    const activeProject = projects.find(p => p._id === activeProjectId);
+    if (!activeProject) return;
+
+    const currentStatuses = activeProject.statusTask
+      ? Object.keys(activeProject.statusTask)
+      : [];
+
+    if (currentStatuses.length === 0) {
+      const defaultStatuses = ["Pending", "Complete", "In Progress"];
+
+      (async () => {
+        for (const status of defaultStatuses) {
+          try {
+            await addStatusMutation.mutateAsync({ projectId: activeProjectId, status });
+          } catch (err) {
+            console.error("Failed to add status:", status, err);
+          }
+        }
+      })();
+    }
+  }, [activeProjectId, projects]);
 
   if (!currentUser) return null;
-  const isEmployee = currentUser.role === "employee";
 
   const filteredProjects = projects
     .filter((p) => {
@@ -38,12 +64,21 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
   const handleRenameSubmit = () => {
     if (!newProjectName.trim() || !editingProject) return;
 
-    updateProjectNameMutation.mutate({
-      projectId: editingProject._id,
-      projectName: newProjectName,
-    });
-
-    setEditingProject(null);
+    updateProjectNameMutation.mutate(
+      {
+        projectId: editingProject._id,
+        projectName: newProjectName,
+      },
+      {
+        onSuccess: (response) => {
+          console.log("Project updated successfully:", response);
+          setEditingProject(null);
+        },
+        onError: (error) => {
+          console.error("Error updating project:", error);
+        },
+      }
+    );
   };
 
   const handleDelete = (projectId) => {
@@ -55,8 +90,8 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
   return (
     <div className="flex gap-3 flex-wrap">
       {filteredProjects.map((project) => (
-        <div key={project._id} className="relative">
-          <div className="absolute top-1 right-1 flex gap-1">
+        <div key={project._id} className="relative group">
+          {!isEmployee && (<div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Trash
               size={16}
               className="cursor-pointer text-red-500 hover:text-red-700"
@@ -67,7 +102,7 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
               className="cursor-pointer text-blue-500 hover:text-blue-700"
               onClick={() => handleRenameClick(project)}
             />
-          </div>
+          </div>)}
 
           <div
             className={`px-10 py-10 rounded cursor-pointer inline-block w-[200px] min-w-[190px] shadow-md transition-all hover:shadow-lg
@@ -85,8 +120,8 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
       ))}
 
       {editingProject && (
-       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow-lg w-[20%] text-[14px] relative">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[99999]">
+          <div className="bg-white p-6 rounded shadow-lg w-[20%] text-[14px] relative">
             <h2 className="text-lg font-semibold mb-4">Rename Project</h2>
             <Input
               type="text"

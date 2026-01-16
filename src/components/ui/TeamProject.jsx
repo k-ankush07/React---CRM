@@ -5,9 +5,16 @@ import TaskEmployees from "./TaskEmployees";
 import TaskTimeline from "./TaskTimeline ";
 
 export default function TeamDetialis({ project, activeProjectId, user }) {
-  const [dateRange, setDateRange] = useState(null);
-
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tick, setTick] = useState(0);
   const activeProject = project?.find((p) => p._id === activeProjectId);
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return {
+      startDate: today,
+      endDate: today,
+    };
+  });
 
   const getFilteredTasks = () => {
     if (!activeProject?.statusTask) return {};
@@ -61,7 +68,7 @@ export default function TeamDetialis({ project, activeProjectId, user }) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setDateRange((prev) => ({ ...prev }));
+      setTick((t) => t + 1);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -70,7 +77,23 @@ export default function TeamDetialis({ project, activeProjectId, user }) {
   return (
     <div className="p-4">
       <div className="absolute right-[20px] top-[65px]">
-        <DateRangePicker onApply={(range) => setDateRange(range)} open={false} />
+        <div
+          className="cursor-pointer border px-3 py-2 rounded-md text-sm bg-white"
+          onClick={() => setShowDatePicker(true)}
+        >
+          {`${moment(dateRange.startDate).format("DD-MM-YYYY")} → ${moment(
+            dateRange.endDate
+          ).format("DD-MM-YYYY")}`}
+        </div>
+
+        <DateRangePicker
+          open={showDatePicker}
+          selectedRange={dateRange}
+          onApply={(range) => {
+            setDateRange(range);
+            setShowDatePicker(false);
+          }}
+        />
       </div>
 
       <div className="flex px-3 py-2 mt-[20px] rounded-md font-medium text-gray-500 text-[14px] bg-gray-100">

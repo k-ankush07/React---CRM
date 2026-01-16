@@ -388,7 +388,8 @@ export function useTotalContracts() {
 export function useUpdateContract() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }) => {
+    mutationFn: async (contractData) => {
+      const { id, ...payload } = contractData;
       const res = await fetch(api.auth.contracts.update.path(id), {
         method: api.auth.contracts.update.method,
         headers: { "Content-Type": "application/json" },
@@ -536,8 +537,8 @@ export function useUpdateProjectName() {
 
   return useMutation({
     mutationFn: async ({ projectId, projectName }) => {
-      const res = await fetch(api.projectName.path(projectId), {
-        method: api.projectName.method,
+      const res = await fetch(api.auth.projects.projectName.path(projectId), {
+        method: api.auth.projects.projectName.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ projectName }),

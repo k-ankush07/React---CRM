@@ -362,3 +362,7 @@ button.popup-text {
 .rdp-month {
     padding-left: 12px;
 }
+
+.daterangepicker {
+  z-index: 9999 !important;
+}

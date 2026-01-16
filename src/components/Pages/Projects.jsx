@@ -110,7 +110,6 @@ export default function Projects() {
   const [renameInput, setRenameInput] = useState("");
   const [openMenuStatus, setOpenMenuStatus] = useState(null);
   const [active, setActive] = useState("list");
-
   // Refs
   const addTaskRef = useRef(null);
   const statusRef = useRef(null);
@@ -271,37 +270,6 @@ export default function Projects() {
         : [],
     [selectedTaskObjects]
   );
-
-  const handleRenameStatus = (oldStatusLocal) => {
-    const newStatus = renameInput.trim().toLowerCase();
-    if (!newStatus || statuses.includes(newStatus)) {
-      setEditingStatusName(null);
-      return;
-    }
-
-    setStatuses((prev) => prev.map((s) => (s === oldStatusLocal ? newStatus : s)));
-
-    setTaskOrder((prev) => {
-      const updated = { ...prev };
-      if (updated[oldStatusLocal]) {
-        updated[newStatus] = updated[oldStatusLocal];
-        delete updated[oldStatusLocal];
-      }
-      return updated;
-    });
-
-    projects.forEach((project) => {
-      if (project.statusTask?.[oldStatusLocal]) {
-        renameStatusMutation.mutate({
-          id: project._id,
-          oldStatus: oldStatusLocal,
-          newStatus,
-        });
-      }
-    });
-
-    setEditingStatusName(null);
-  };
 
   // update database Project asign user //
   const handleUpdateProject = useCallback(
@@ -1187,13 +1155,60 @@ export default function Projects() {
     ]
   );
 
+  const handleRenameStatus = (oldStatusLocal) => {
+    const newStatus = renameInput.trim().toLowerCase();
+    if (!newStatus || statuses.includes(newStatus)) {
+      setEditingStatusName(null);
+      return;
+    }
+
+    setStatuses((prev) => prev.map((s) => (s === oldStatusLocal ? newStatus : s)));
+
+    setTaskOrder((prev) => {
+      const updated = { ...prev };
+      if (updated[oldStatusLocal]) {
+        updated[newStatus] = updated[oldStatusLocal].map(task => ({
+          ...task,
+          createdByTask: {
+            userId: task.createdByTask?.userId || currentUser?.userId || "Unknown",
+            fullName: task.createdByTask?.fullName || currentUser?.fullName || "Unknown",
+            email: task.createdByTask?.email || currentUser?.email || "unknown@hubsyntax.com",
+          },
+        }));
+        delete updated[oldStatusLocal];
+      }
+      return updated;
+    });
+
+    const activeProject = projects.find((p) => p._id === activeProjectId);
+    if (!activeProject) return;
+
+    if (activeProject.statusTask?.[oldStatusLocal]) {
+      const tasksToUpdate = activeProject.statusTask[oldStatusLocal].map(task => ({
+        ...task,
+        createdByTask: {
+          userId: task.createdByTask?.userId || currentUser?.userId || "Unknown",
+          fullName: task.createdByTask?.fullName || currentUser?.fullName || "Unknown",
+          email: task.createdByTask?.email || currentUser?.email || "unknown@hubsyntax.com",
+        },
+      }));
+
+      renameStatusMutation.mutate({
+        id: activeProjectId,
+        oldStatus: oldStatusLocal,
+        newStatus,
+        tasks: tasksToUpdate, 
+      });
+    }
+    setEditingStatusName(null);
+  };
+
   const dhandle = (statusToDelete) => {
     if (!activeProjectId) return;
 
     if (!window.confirm(`Delete status "${statusToDelete}" and all its tasks?`)) {
       return;
     }
-
     deleteStatusMutation.mutate(
       {
         projectId: activeProjectId,
@@ -1215,20 +1230,16 @@ export default function Projects() {
 
   const tasksByStatus = useMemo(() => {
     const map = {};
+    const activeProject = projects.find((p) => p._id === activeProjectId);
+    if (!activeProject) return map;
 
-    projects?.forEach((project) => {
-      const statusTask = project.statusTask || {};
-
-      Object.entries(statusTask).forEach(([status, tasks]) => {
-        if (!map[status]) {
-          map[status] = [];
-        }
-        map[status].push(...tasks);
-      });
+    const statusTask = activeProject.statusTask || {};
+    Object.entries(statusTask).forEach(([status, tasks]) => {
+      map[status] = [...tasks];
     });
 
     return map;
-  }, [projects]);
+  }, [projects, activeProjectId]);
 
   const getTaskCount = (status) => tasksByStatus[status]?.length || 0;
   //renderSections all task //
@@ -1307,10 +1318,8 @@ export default function Projects() {
               </div>
 
             </div>
-
           )}
         </div>
-
         {!collapsedStatuses[status] && renderTasks(status)}
         {!collapsedStatuses[status] && (editingStatus !== status ? (
           <div
