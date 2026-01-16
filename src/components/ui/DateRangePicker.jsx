@@ -41,7 +41,7 @@ export default function DateRangePicker({ onApply, open, selectedRange }) {
     return () => {
       $input.data("daterangepicker")?.remove();
     };
-  }, []); 
+  }, []);
 
 
   useEffect(() => {

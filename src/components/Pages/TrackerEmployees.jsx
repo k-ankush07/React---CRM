@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useUserDetails } from "../Use-auth";
+import { useUserDetails, useUser } from "../Use-auth";
 import { format } from "date-fns";
 import MonthlyCalendar from "../ui/MonthlyCalendar";
 import { useDateRange } from "./DateRangeContext";
@@ -74,6 +74,7 @@ function SessionCard({ session }) {
 // Employees Component
 export default function Employees() {
   const { start, end } = useDateRange();
+  const { data: user } = useUser();
   const { data: entries } = useUserDetails();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -81,18 +82,25 @@ export default function Employees() {
 
   const handleSelectDate = (date) => setSelectedDate(date);
 
+  const roleVisibility = {
+    admin: ["admin", "management", "hr", "employee"],
+    management: ["management", "employee"],
+    hr: ["hr", "management", "employee"],
+    employee: []
+  };
+
   const employees =
     entries?.filter(entry => {
-      if (entry.role !== "employee") return false;
+      if (user.role === "employee") return entry.userId === user.userId;
 
+      // For other roles, check if the entry's role is visible
+      return roleVisibility[user.role]?.includes(entry.role);
+    }).filter(entry => {
       const workDate = new Date(entry.workDate);
-      return (
-        workDate >= start &&
-        workDate <= end &&
-        workDate.toDateString() === selectedDate.toDateString()
-      );
+      return workDate >= start && workDate <= end &&
+        workDate.toDateString() === selectedDate.toDateString();
     }) || [];
-
+  // Group by date
   const groupedByDate = employees.reduce((acc, employee) => {
     const date = format(new Date(employee.workDate), "EEEE dd MMM yyyy");
     if (!acc[date]) acc[date] = [];
@@ -100,13 +108,16 @@ export default function Employees() {
     return acc;
   }, {});
 
+  // Filter all employees based on user role
   const allEmployees =
     entries?.filter(entry => {
-      if (entry.role !== "employee") return false;
-
+      if (user.role === "employee") return entry.userId === user.userId;
+      return roleVisibility[user.role]?.includes(entry.role);
+    }).filter(entry => {
       const workDate = new Date(entry.workDate);
       return workDate >= start && workDate <= end;
     }) || [];
+
 
   const allGroupedByDate = allEmployees.reduce((acc, employee) => {
     const date = format(new Date(employee.workDate), "EEEE dd MMM yyyy");
@@ -188,7 +199,7 @@ export default function Employees() {
 
                     {groupedByDate[date].map((emp) => {
                       const isActive = selectedEmployeeId === emp.userId;
-                     const totalWorked = calculateUniqueMinutes(emp.sessions, emp.workDate);
+                      const totalWorked = calculateUniqueMinutes(emp.sessions, emp.workDate);
 
 
                       return (

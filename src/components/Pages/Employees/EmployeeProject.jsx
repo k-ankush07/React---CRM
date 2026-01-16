@@ -1,14 +1,18 @@
 import { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import {
+  Calendar, Flag, CircleStop, Users, CircleDot, X, ClockFading, ChevronRight,
+  CircleCheck, SendHorizontal
+} from "lucide-react";
 import EmployeeLayout from "../EmployeeLayout";
 import { useUser, useProjects, useUpdateProject } from "../../Use-auth";
 import ProjectList from "../../ui/ProjectList";
 import TaskEmployees from "../../ui/TaskEmployees";
 import TaskPriority from "../../ui/TaskPriority";
 import { useDateRange } from "../DateRangeContext";
-import { Calendar, Flag, CircleStop, Users, CircleDot, X, ClockFading, ChevronRight, CircleCheck } from "lucide-react";
 import CommentsSection from "../../ui/CommentsSection ";
 import TaskDetails from "../../ui/TaskDetails ";
 import TaskTimeline from "../../ui/TaskTimeline ";
+import { Input } from "../../ui/Input";
 
 const getStatusColor = (status) => {
   const colors = [
@@ -43,6 +47,7 @@ export default function EmployeeProject() {
   const [currentTask, setCurrentTask] = useState(null);
   const [status, setStatus] = useState([]);
   const [projectStatuses, setProjectStatuses] = useState([]);
+  const [commentText, setCommentText] = useState("");
   const [editData, setEditData] = useState({
     title: "",
     description: [
@@ -458,6 +463,45 @@ export default function EmployeeProject() {
     setProjectStatuses(statuses);
   }, [projects, activeProjectId, user]);
 
+  const handleAddComment = useCallback(() => {
+    if (!commentText.trim()) return;
+
+    const currentUserName = user?.username || "Unknown";
+    const assignedText = `${currentUserName} added comment: "${commentText}"`;
+    const newComment = {
+      _id: Date.now().toString(),
+      text: assignedText,
+      createdBy: currentUserName,
+      createdAt: new Date().toISOString(),
+    };
+
+    setEditData((prev) => ({
+      ...prev,
+      comments: prev.comments
+        ? [...prev.comments, newComment]
+        : [newComment],
+    }));
+
+    setCommentText("");
+
+    if (currentTask?._id && currentTask.projectId) {
+      updateProject.mutate(
+        {
+          id: currentTask.projectId,
+          taskId: currentTask._id,
+          status: currentTask.status || "",
+          comments: [newComment],
+        },
+      );
+    }
+  }, [
+    commentText,
+    currentTask,
+    user,
+    updateProject,
+    refetch,
+  ]);
+
   return (
     <EmployeeLayout>
       <div className="relative h-[90.7vh]">
@@ -567,6 +611,26 @@ export default function EmployeeProject() {
                     <div className="p-[20px] border-b border-gray-400 text-sm font-medium">Activity</div>
                     <div className="p-[20px] text-[12px] bg-[#f9f9f9]">
                       <CommentsSection comments={editData.comments || []} />
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          type="text"
+                          className="flex-1 outline-none border border-gray-300 rounded px-3 py-2 focus:border-blue-500"
+                          placeholder="Add a comment"
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddComment();
+                            }
+                          }}
+                        />
+                        <button
+                          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors flex justify-center h-[35px] w-[35px]"
+                          onClick={handleAddComment}
+                        >
+                          <SendHorizontal size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

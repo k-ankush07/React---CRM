@@ -45,6 +45,7 @@ const CommentsSection = ({ comments = [] }) => {
         </div>
     );
 };
+
 const CommentItem = ({ comment }) => (
     <div className="flex justify-between gap-[20px] mb-[10px]  hover:bg-white rounded">
         <div className="text-gray-500 w-[60%]">

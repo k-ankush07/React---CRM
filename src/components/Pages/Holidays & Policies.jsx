@@ -161,6 +161,9 @@ export default function HolidaysAndPolicies() {
     return (
         <RoleBasedLayout >
             <div className="relative h-[90.7vh] bg-gray-50 overflow-hidden">
+                <div
+                    className="absolute w-full h-[100%] opacity-[0.1] bg-[url('https://www.hubsyntax.com/uploads/policies.jfif')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"
+                ></div>
                 <div className="relative z-20 h-full overflow-y-auto p-6 space-y-8">
                     {isHR && (<div>
                         <Button onClick={() => setShowPopup(true)} className="flex items-center justify-center gap-2 mb-[10px] px-4 py-2 rounded-lg text-black bg-[#fbe5e9] hover:bg-[#fdf9fb] shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200" >
@@ -270,7 +273,7 @@ export default function HolidaysAndPolicies() {
                                                         )}
                                                     </div>
 
-                                                      {isHR && (<div className="flex items-center gap-3">
+                                                    {isHR && (<div className="flex items-center gap-3">
                                                         <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                                                             {item.type}
                                                         </span>

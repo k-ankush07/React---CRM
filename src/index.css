@@ -366,3 +366,7 @@ button.popup-text {
 .daterangepicker {
   z-index: 9999 !important;
 }
+
+.permission-child .permission {
+    border: none;
+}

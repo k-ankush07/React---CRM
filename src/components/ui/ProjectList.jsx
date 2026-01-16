@@ -120,7 +120,7 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
       ))}
 
       {editingProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[99999]">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[9999]">
           <div className="bg-white p-6 rounded shadow-lg w-[20%] text-[14px] relative">
             <h2 className="text-lg font-semibold mb-4">Rename Project</h2>
             <Input

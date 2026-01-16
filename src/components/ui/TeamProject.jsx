@@ -90,7 +90,7 @@ export default function TeamDetialis({ project, activeProjectId, user }) {
           open={showDatePicker}
           selectedRange={dateRange}
           onApply={(range) => {
-            setDateRange(range);
+            if (range) setDateRange(range);
             setShowDatePicker(false);
           }}
         />

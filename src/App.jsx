@@ -15,6 +15,7 @@ import ResetPassword from "./components/Pages/ResetPassword";
 import HeartbeatAndAutoLogout from "./components/HeartbeatAndAutoLogout";
 import HrDashBoard from "./components/Pages/Hr/HrDashBoard";
 import HolidaysAndPolicies from "./components/Pages/Holidays & Policies";
+import Setting from "./components/Pages/Admin/Setting";
 import NotFound from "./components/Pages/not-found";
 
 function ProtectedRoute({ component: Component, allowedRoles }) {
@@ -56,7 +57,7 @@ function HomeRedirect() {
 function PublicRoute({ component: Component }) {
   const { data: user, isLoading } = useUser();
 
-  if (isLoading) return <div></div>; 
+  if (isLoading) return <div></div>;
 
   if (user) {
     switch (user.role) {
@@ -91,7 +92,10 @@ function App() {
           <Route path="/admin">
             <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />
           </Route>
-
+          
+          <Route path="/setting">
+            <ProtectedRoute component={Setting} allowedRoles={["admin"]} />
+          </Route>
           <Route path="/management">
             <ProtectedRoute
               component={ManagementDashboard}
@@ -130,7 +134,6 @@ function App() {
               allowedRoles={["employee"]}
             />
           </Route>
-
           <Route path="/projects">
             <ProtectedRoute
               component={Projects}
@@ -155,6 +158,7 @@ function App() {
               allowedRoles={["admin", "management", "employee", "hr"]}
             />
           </Route>
+
           <Route path="/reset-password/:token" component={ResetPassword} />
           <Route path="/" component={HomeRedirect} />
           <Route path="*" component={NotFound} />

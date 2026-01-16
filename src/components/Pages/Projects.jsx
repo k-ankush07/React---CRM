@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from "react";
 import SucessToast from "../ui/SucessToast";
-import ManagementLayout from "./ManagementLayout";
+import RoleBasedLayout from "./RoleBasedLayout";
 import {
   useEmployees, useUser, useCreateProject, useProjects, useUpdateProject, useDeleteTask, useRenameProjectStatus,
   useDragDropTask, useAddProjectStatus, useDeleteStatus
@@ -1446,7 +1446,7 @@ export default function Projects() {
         </div>
 
         {showAddProjectInput && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[99999]">
             <div className="bg-white p-6 rounded shadow-lg w-[20%] text-[14px] relative">
               <h3 className="text-lg font-semibold mb-4">Add New Project</h3>
               <div className="flex gap-2 mb-4">
@@ -1509,7 +1509,7 @@ export default function Projects() {
     return <p className="p-6 text-red-600"></p>;
 
   return (
-    <ManagementLayout>
+    <RoleBasedLayout>
       <div className="relative h-[90.7vh]">
         <div
           className="absolute w-full h-[100%] opacity-[0.1] bg-[url('https://www.hubsyntax.com/uploads/prodcutpages.webp')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"
@@ -1625,6 +1625,6 @@ export default function Projects() {
           )}
         </div>
       </div>
-    </ManagementLayout>
+    </RoleBasedLayout>
   );
 }

@@ -150,9 +150,9 @@ export default function Transactions() {
     const filteredContracts = useMemo(() => {
         let filtered = contracts;
 
-        if (start && end) {
-            const startDate = new Date(start);
-            const endDate = new Date(end);
+        if (selectedRange?.startDate && selectedRange?.endDate) {
+            const startDate = new Date(selectedRange.startDate);
+            const endDate = new Date(selectedRange.endDate);
             endDate.setHours(23, 59, 59, 999);
 
             filtered = filtered.filter((c) => {
@@ -162,12 +162,19 @@ export default function Transactions() {
             });
         }
 
-        if (selectedTypes.length) filtered = filtered.filter((c) => selectedTypes.includes(c.type));
-        if (selectedClients.length) filtered = filtered.filter((c) => selectedClients.includes(c.client?.name));
-        if (selectedContractTitles.length) filtered = filtered.filter((c) => selectedContractTitles.includes(c.contractDetails?.title));
+        if (selectedTypes.length)
+            filtered = filtered.filter((c) => selectedTypes.includes(c.type));
+
+        if (selectedClients.length)
+            filtered = filtered.filter((c) => selectedClients.includes(c.client?.name));
+
+        if (selectedContractTitles.length)
+            filtered = filtered.filter((c) =>
+                selectedContractTitles.includes(c.contractDetails?.title)
+            );
 
         return filtered;
-    }, [contracts, start, end, selectedTypes, selectedClients, selectedContractTitles]);
+    }, [contracts, selectedRange, selectedTypes, selectedClients, selectedContractTitles]);
 
     // Earnings & balance
     const pendingEarnings = useMemo(() => {
@@ -332,9 +339,11 @@ export default function Transactions() {
 
     return (
         <ManagementLayout>
-            <div className="relative h-[90.7vh]">
-
-                <div className="relative z-20 h-full overflow-y-auto p-6 bg-white">
+            <div className="relative h-[90.7vh] bg-gray-50 overflow-hidden">
+                <div
+                    className="absolute w-full h-[100%] opacity-[0.1] z-[99]  bg-[url('https://www.hubsyntax.com/uploads/policies.jfif')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"
+                ></div>
+                <div className="relative z-[99] h-full overflow-y-auto p-6 space-y-8">
                     {toastMessage && <SuccessToast message={toastMessage} />}
 
                     <div className="mb-4 flex justify-end gap-[20px]">
