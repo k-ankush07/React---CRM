@@ -217,7 +217,7 @@ export default function Employees() {
                             className={`overflow-hidden transition-all duration-500 ${isActive ? "max-h-[1000px]" : "max-h-0"
                               }`}
                           >
-                            <div className="mb-[12px] p-4 border border-gray-300 rounded bg-gray-50 shadow">
+                            <div className="mb-[12px] p-4 border border-gray-300 rounded bg-gray-50 shadow max-h-[300px] overflow-y-auto">
                               <div className="border border-gray-300 rounded-lg p-4 mb-4 bg-white shadow-sm hover:shadow-md transition">
                                 <div className="flex justify-between items-center mb-2">
                                   <span className="text-gray-600 font-medium">
@@ -298,7 +298,7 @@ export default function Employees() {
                         ${openUserId === key ? "max-h-[1000px]" : "max-h-0"}
                         `}
                         >
-                          <div className="border rounded p-4 mb-3 bg-gray-50 shadow">
+                          <div className="border rounded p-4 mb-3 bg-gray-50 shadow max-h-[400px] overflow-y-auto">
                             <p className="text-blue-600 font-medium">
                               Total Worked: {formatMinutes(totalWorked)}
                             </p>

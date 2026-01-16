@@ -63,6 +63,7 @@ export default function EmployeeProject() {
   });
   const [showStatusDropdownFor, setShowStatusDropdownFor] = useState(null);
   const [selectedTasks, setSelectedTasks] = useState({});
+  const [allStatuses, setAllStatuses] = useState([]);
   const textareaRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -253,16 +254,24 @@ export default function EmployeeProject() {
   const renderTasks = useCallback(
     (status) => {
       let allTasks = [];
+
       localProjects.forEach((project) => {
         if (new Date(project.createdAt) >= start && new Date(project.createdAt) <= end) {
           const tasks = project.statusTask?.[status] || [];
+
           tasks.forEach((task) => {
-            allTasks.push({
-              ...task,
-              projectId: project._id,
-              projectName: project.projectName,
-              status,
-            });
+            const assignedToCurrentUser = task.assignedEmployees?.some(
+              (emp) => emp.username === user.username || emp.username === user.fullName
+            );
+
+            if (assignedToCurrentUser) {
+              allTasks.push({
+                ...task,
+                projectId: project._id,
+                projectName: project.projectName,
+                status,
+              });
+            }
           });
         }
       });
@@ -333,7 +342,7 @@ export default function EmployeeProject() {
                     id={`status-dropdown-${task._id}`}
                     className="absolute left-0 mt-2 bg-white border rounded shadow p-2 z-50 min-w-[120px]"
                   >
-                    {projectStatuses.map((s) => {
+                    {allStatuses.map((s) => {
                       const isActive = s === task.status;
                       return (
                         <div
@@ -402,9 +411,27 @@ export default function EmployeeProject() {
     );
   };
 
-
   useEffect(() => {
     if (!activeProjectId || !projects.length) {
+      setAllStatuses([]);
+      return;
+    }
+
+    const activeProject = projects.find(
+      (p) => p._id?.toString() === activeProjectId?.toString()
+    );
+
+    if (!activeProject?.statusTask) {
+      setAllStatuses([]);
+      return;
+    }
+
+    const statuses = Object.keys(activeProject.statusTask);
+    setAllStatuses(statuses);
+  }, [projects, activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId || !projects.length || !user) {
       setProjectStatuses([]);
       return;
     }
@@ -418,9 +445,18 @@ export default function EmployeeProject() {
       return;
     }
 
-    const statuses = Object.keys(activeProject.statusTask);
+    const statuses = Object.entries(activeProject.statusTask)
+      .filter(([status, tasks]) =>
+        tasks.some(task =>
+          task.assignedEmployees?.some(
+            emp => emp.username === user.username || emp.username === user.fullName
+          )
+        )
+      )
+      .map(([status]) => status);
+
     setProjectStatuses(statuses);
-  }, [projects, activeProjectId]);
+  }, [projects, activeProjectId, user]);
 
   return (
     <EmployeeLayout>

@@ -11,78 +11,54 @@ export default function EmployeeDashboard() {
   const { data: user } = useUser();
   const { data: holidaysData, refetch } = useTotalHolidays();
 
+
+  console.log(projects)
   // Filter projects in date range
   const filteredProjects = projects.filter(p => {
     const createdAt = new Date(p.createdAt);
     return createdAt >= start && createdAt <= end;
   });
 
-  // Projects assigned to current employee
-  const assignedProjects = filteredProjects.filter(project =>
-    project.tasks?.some(task =>
-      task.assignedEmployees?.some(emp =>
-        emp.username === user.fullName || emp.username === user.username
-      )
+  // Flatten all tasks across statuses and include their status
+  const allTasks = filteredProjects.flatMap(project => {
+    return Object.entries(project.statusTask || {}).flatMap(([status, tasks]) => {
+      return tasks.map(task => ({
+        ...task,
+        projectId: project._id,
+        projectName: project.projectName,
+        status, // <--- preserve the status from the key
+      }));
+    });
+  });
+
+  // Tasks assigned to the current user
+  const assignedTasks = allTasks.filter(task =>
+    task.assignedEmployees?.some(
+      emp => emp.username === user.username || emp.username === user.fullName
     )
   );
 
-  const totalProjects = assignedProjects.length || 0;
+  // Total completed tasks
+  const completedTasks = assignedTasks.filter(task => task.status === "complete").length;
 
-  //  Total completedTasks Tasks
-  const completedTasks = assignedProjects.reduce((sum, project) =>
-    sum + (project.tasks?.filter(task =>
-      task.status === "completed" &&
-      task.assignedEmployees?.some(emp =>
-        emp.username === user.username || emp.username === user.fullName
-      )
-    ).length || 0),
-    0);
+  // Total assigned tasks
+  const totalAssignedTasks = assignedTasks.length;
 
-  //  Total Assigned Tasks
-  const totalAssignedTasks = assignedProjects.reduce((sum, proj) =>
-    sum +
-    (proj.tasks?.filter(task =>
-      task.assignedEmployees?.some(
-        emp =>
-          emp.username === user?.fullName ||
-          emp.username === user?.username
-      )
-    ).length || 0),
-    0
-  );
+  // Total projects where user has assigned tasks
+  const assignedProjects = Array.from(new Set(assignedTasks.map(t => t.projectId)));
 
-  // Upcoming Tasks
-  const upcomingTasks = assignedProjects.reduce((sum, project) =>
-    sum +
-    (project.tasks?.filter(task =>
-      task.status === "upcoming" &&
-      task.assignedEmployees?.some(
-        emp =>
-          emp.username === user?.username ||
-          emp.username === user?.fullName
-      )
-    ).length || 0),
-    0
-  );
 
+  // Monthly tasks breakdown
   const monthlyTasks = months.map((m, index) => {
-    const taskCount = assignedProjects.reduce((sum, project) => {
+    const count = assignedTasks.filter(task => {
+      const created = new Date(task.createdAt || task.projectCreatedAt || new Date());
+      return created.getMonth() === index;
+    }).length;
 
-      return sum + (project.tasks?.filter(task => {
-        const created = new Date(task.createdAt || project.createdAt);
-
-        return (
-          created.getMonth() === index &&
-          task.assignedEmployees?.some(emp =>
-            emp.username === user?.username || emp.username === user?.fullName
-          )
-        );
-      }).length || 0);
-
-    }, 0);
-
-    return { month: m, task: taskCount };
+    return { month: m, task: count };
   });
+
+  const totalProjects = assignedProjects.length || 0;
 
   const payrollData = [
     { name: 'Salaries', value: 5000, color: '#0088FE' },
@@ -128,7 +104,7 @@ export default function EmployeeDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Total Projects</p>
-                <p className="text-3xl font-bold">{totalProjects}</p>
+                <p className="text-3xl font-bold">{assignedProjects.length}</p>
               </div>
               <Star className="w-12 h-12 opacity-80" />
             </div>

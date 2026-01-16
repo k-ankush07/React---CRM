@@ -7,6 +7,7 @@ import SuccessToast from "../../ui/SucessToast";
 import DateRangePicker from "../../ui/DateRangePicker";
 import { CalendarRange, ChevronDown, CircleX, Trash2, Pencil } from "lucide-react";
 import { useDateRange } from "../DateRangeContext";
+import Papa from "papaparse";
 
 const transactionTypes = [
     "Fixed-price",
@@ -177,19 +178,34 @@ export default function Transactions() {
     // CSV download
     const downloadCSV = () => {
         if (!filteredContracts.length) return;
-        const headers = ["Date", "Type", "Contract / Details", "Client", "Status", "Amount"];
+
+        const headers = [
+            "Date",
+            "Type",
+            "Contract Title",
+            "Contract Subtitle",
+            "Client",
+            "Status",
+            "Amount",
+        ];
+
         const rows = filteredContracts.map((c) => [
             formatDate(c.date),
             c.type,
-            `${c.contractDetails?.title || ""}${c.contractDetails?.subtitle ? " - " + c.contractDetails.subtitle : ""}`,
+            c.contractDetails?.title || "",
+            c.contractDetails?.subtitle || "",
             c.client?.name || "",
             c.status,
             Number(c.amount || 0).toFixed(2),
         ]);
 
-        const csvContent = [headers, ...rows].map((row) => row.map((v) => `"${v}"`).join(",")).join("\n");
+        const csvContent = [headers, ...rows]
+            .map((row) => row.map((v) => `"${v}"`).join(","))
+            .join("\n");
+
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
+
         const link = document.createElement("a");
         link.href = url;
         link.setAttribute("download", "transactions.csv");
@@ -262,21 +278,77 @@ export default function Transactions() {
         }
     };
 
+    const handleCSVUpload = (file) => {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: (header) =>
+                header.trim().toLowerCase().replace(/\s+/g, "_"),
+            complete: async (results) => {
+                try {
+                    for (const row of results.data) {
+                        if (!row.contract_title) {
+                            console.warn("Skipping row (no title):", row);
+                            continue;
+                        }
+
+                        await createContract({
+                            date: row.date
+                                ? new Date(row.date).toISOString()
+                                : new Date().toISOString(),
+                            type: row.type,
+                            contractDetails: {
+                                title: row.contract_title,         
+                                subtitle: row.contract_subtitle || "",
+                            },
+                            client: {
+                                name: row.client,
+                                initials: getInitials(row.client),
+                            },
+                            status: row.status || "Pending",
+                            amount: Number(row.amount || 0),
+                        });
+                    }
+
+                    setToastMessage("CSV imported successfully!");
+                    refetch();
+                } catch (err) {
+                    console.error("CSV import error:", err);
+                    setToastMessage("CSV import failed");
+                }
+            },
+        });
+    };
+
     const inputClass =
         "w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#fbe5e9] transition duration-200";
 
     return (
         <ManagementLayout>
             <div className="relative h-[90.7vh]">
+
                 <div className="relative z-20 h-full overflow-y-auto p-6 bg-white">
                     {toastMessage && <SuccessToast message={toastMessage} />}
 
-                    <div className="mb-4">
+                    <div className="mb-4 flex justify-end gap-[20px]">
                         <Button
                             onClick={() => setShowCreateForm((prev) => !prev)}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         >
                             {showCreateForm ? "Hide Create Contract" : "Show Create Contract"}
+                        </Button>
+                        <input
+                            type="file"
+                            accept=".csv"
+                            hidden
+                            id="csvInput"
+                            onChange={(e) => handleCSVUpload(e.target.files[0])}
+                        />
+                        <Button
+                            className="px-4 py-2 h-[40px] bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                            onClick={() => document.getElementById("csvInput").click()}
+                        >
+                            Import CSV
                         </Button>
                     </div>
 
@@ -346,7 +418,7 @@ export default function Transactions() {
                     {/* Transactions Table & Filters */}
                     <div className="mb-6">
                         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Transactions</h3>
-                        <div className="flex gap-[20px] mb-[20px] flex-wrap">
+                        <div className="flex gap-[20px] mb-[20px] flex-wrap text-[14px] text-gray-700">
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Date range</label>
                                 <div
@@ -374,7 +446,7 @@ export default function Transactions() {
                             <FilterDropdown label="Transactions Type" options={transactionTypes} selected={selectedTypes} setSelected={setSelectedTypes} />
                             <FilterDropdown label="Client" options={clients} selected={selectedClients} setSelected={setSelectedClients} />
                             <FilterDropdown label="Contract" options={contractTitles} selected={selectedContractTitles} setSelected={setSelectedContractTitles} />
-                            <Button onClick={downloadCSV} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">Download CSV</Button>
+
                         </div>
 
                         {/* Earnings */}
@@ -387,6 +459,7 @@ export default function Transactions() {
                                 <p className="text-sm text-gray-500 mb-1">Available balance</p>
                                 <p className="text-2xl font-semibold text-gray-800">${availableBalance.toFixed(2)}</p>
                             </div>
+                            <Button onClick={downloadCSV} className="px-4 py-2 inline-block h-[40px] bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">Download CSV</Button>
                         </div>
 
                         {/* Transactions Table */}
