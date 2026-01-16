@@ -5,10 +5,6 @@ import {
   useEmployees, useUser, useCreateProject, useProjects, useUpdateProject, useDeleteTask, useRenameProjectStatus,
   useDragDropTask, useAddProjectStatus, useDeleteStatus
 } from "../Use-auth";
-import SmartDatePicker from "../ui/SmartDatePicker";
-import TaskPriority from "../ui/TaskPriority";
-import TaskEmployees from "../ui/TaskEmployees";
-import { useDateRange } from "./DateRangeContext";
 import {
   Calendar, Plus, CircleCheck, Flag, CircleStop, Users, GripVertical, X, SendHorizontal,
   CircleDot, ChevronRight, Ellipsis, ClockFading
@@ -18,6 +14,10 @@ import {
   arrayMove, SortableContext, verticalListSortingStrategy, useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import SmartDatePicker from "../ui/SmartDatePicker";
+import TaskPriority from "../ui/TaskPriority";
+import TaskEmployees from "../ui/TaskEmployees";
+import { useDateRange } from "./DateRangeContext";
 import ProjectList from "../ui/ProjectList";
 import CommentsSection from "../ui/CommentsSection ";
 import { Input } from "../ui/Input";

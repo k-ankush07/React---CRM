@@ -143,12 +143,6 @@ export default function Transactions() {
             : (words[0][0] + words[words.length - 1][0]).toUpperCase();
     };
 
-    // Earnings & balance
-    const pendingEarnings = contracts.filter((c) => c.status === "Pending")
-        .reduce((sum, c) => sum + Number(c.amount || 0), 0);
-    const availableBalance = contracts.filter((c) => ["Completed", "In Progress"].includes(c.status))
-        .reduce((sum, c) => sum + Number(c.amount || 0), 0);
-
     const clients = useMemo(() => [...new Set(contracts.map((c) => c.client?.name).filter(Boolean))], [contracts]);
     const contractTitles = useMemo(() => [...new Set(contracts.map((c) => c.contractDetails?.title).filter(Boolean))], [contracts]);
 
@@ -174,6 +168,19 @@ export default function Transactions() {
 
         return filtered;
     }, [contracts, start, end, selectedTypes, selectedClients, selectedContractTitles]);
+
+    // Earnings & balance
+    const pendingEarnings = useMemo(() => {
+        return filteredContracts
+            .filter((c) => c.status === "Pending")
+            .reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    }, [filteredContracts]);
+
+    const availableBalance = useMemo(() => {
+        return filteredContracts
+            .filter((c) => ["Completed", "In Progress"].includes(c.status))
+            .reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    }, [filteredContracts]);
 
     // CSV download
     const downloadCSV = () => {
@@ -298,7 +305,7 @@ export default function Transactions() {
                                 : new Date().toISOString(),
                             type: row.type,
                             contractDetails: {
-                                title: row.contract_title,         
+                                title: row.contract_title,
                                 subtitle: row.contract_subtitle || "",
                             },
                             client: {

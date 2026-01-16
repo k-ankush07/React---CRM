@@ -43,10 +43,10 @@ export default function Dashboard() {
                     </select>
                 </div>
 
-                <button className="flex items-center gap-2 border rounded-lg px-4 py-2 text-sm text-[#580406] hover:bg-gray-100">
+                {/* <button className="flex items-center gap-2 border rounded-lg px-4 py-2 text-sm text-[#580406] hover:bg-gray-100">
                     <Upload className="w-4 h-4" />
                     Export
-                </button>
+                </button> */}
                 <div  className="flex items-center gap-2  hover:bg-gray-100 px-3 py-2 rounded-lg"  >
                     <img
                         src={user?.image}

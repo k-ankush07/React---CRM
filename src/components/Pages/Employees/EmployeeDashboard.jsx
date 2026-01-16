@@ -11,8 +11,6 @@ export default function EmployeeDashboard() {
   const { data: user } = useUser();
   const { data: holidaysData, refetch } = useTotalHolidays();
 
-
-  console.log(projects)
   // Filter projects in date range
   const filteredProjects = projects.filter(p => {
     const createdAt = new Date(p.createdAt);
