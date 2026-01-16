@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from '../ui/Input';
+import SucessToast from "./SucessToast";
+import { useCreatePermission, useUpdatePermission, useGetPermissions } from "../Use-auth";
 
 // ---------------- PERMISSIONS DATA ----------------
 const permissionsData = [
@@ -113,10 +115,25 @@ function PermissionItem({ permission, selected, toggle, search, expandedAll }) {
     );
 }
 
-export default function EmployeePermissions() {
+export default function EmployeePermissions({ adminId }) {
     const [selected, setSelected] = useState({});
     const [search, setSearch] = useState("");
     const [expandedAll, setExpandedAll] = useState(false);
+    const [toast, setToast] = useState({
+        show: false,
+        message: "",
+        type: "success",
+    });
+    const createPermission = useCreatePermission();
+    const { data: existingPermissions, refetch } = useGetPermissions();
+    const updatePermission = useUpdatePermission();
+
+    useEffect(() => {
+        if (!existingPermissions || !adminId) return;
+
+        const adminPerm = existingPermissions.find(p => p.createdBy === adminId);
+        if (adminPerm) setSelected(adminPerm.employees || {});
+    }, [existingPermissions, adminId]);
 
     const togglePermission = (key, children = []) => {
         const newSelected = { ...selected, [key]: !selected[key] };
@@ -148,8 +165,77 @@ export default function EmployeePermissions() {
         setSelected(next);
     };
 
+    const handleSave = () => {
+        if (!adminId) {
+            setToast({
+                show: true,
+                message: "Admin ID not found",
+                type: "error",
+            });
+            return;
+        }
+
+        const existing = existingPermissions?.find(p => p.createdBy === adminId);
+
+        const payload = {
+            employees: selected,
+            management: existing?.management || {},
+        };
+
+        if (existing) {
+            updatePermission.mutate(
+                { id: existing._id, ...payload },
+                {
+                    onSuccess: () => {
+                        setToast({
+                            show: true,
+                            message: "Employee permissions updated successfully!",
+                            type: "success",
+                        });
+                    },
+                    onError: (err) => {
+                        setToast({
+                            show: true,
+                            message: err?.message || "Failed to update permissions",
+                            type: "error",
+                        });
+                    },
+                }
+            );
+        } else {
+            createPermission.mutate(
+                { createdBy: adminId, ...payload },
+                {
+                    onSuccess: () => {
+                        refetch();
+                        setToast({
+                            show: true,
+                            message: "Employee permissions created successfully!",
+                            type: "success",
+                        });
+                    },
+                    onError: (err) => {
+                        setToast({
+                            show: true,
+                            message: err?.message || "Failed to create permissions",
+                            type: "error",
+                        });
+                    },
+                }
+            );
+        }
+    };
+
+
     return (
         <div className="p-4 border rounded bg-gray-50 text-[14px]">
+            {toast.show && (
+                <SucessToast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
+            )}
             <Input
                 type="text"
                 placeholder="Search permissions..."
@@ -169,12 +255,17 @@ export default function EmployeePermissions() {
                     <span className="font-medium">Select all permissions</span>
                 </label>
 
-                <button
-                    className="text-blue-500 text-sm"
-                    onClick={() => setExpandedAll((prev) => !prev)}
-                >
-                    {expandedAll ? "Collapse all" : "Expand all"}
-                </button>
+                <div className="flex gap-[20px]">
+                    <button className="text-green-500 text-sm" onClick={handleSave}>
+                        Save
+                    </button>
+                    <button
+                        className="text-blue-500 text-sm"
+                        onClick={() => setExpandedAll((prev) => !prev)}
+                    >
+                        {expandedAll ? "Collapse all" : "Expand all"}
+                    </button>
+                </div>
             </div>
 
             {permissionsData.map((perm) => (

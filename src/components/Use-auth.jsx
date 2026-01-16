@@ -327,7 +327,7 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: async ({ projectId, taskId }) => {
       const res = await fetch(
-        `${api.auth.projects.update.path(projectId)}/tasks/${taskId}`, 
+        `${api.auth.projects.update.path(projectId)}/tasks/${taskId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -516,19 +516,19 @@ export function useDeleteStatus() {
   return useMutation({
     mutationFn: async ({ projectId, status }) => {
       const res = await fetch(api.auth.projects.deleteStatus.path, {
-        method: api.auth.projects.deleteStatus.method, 
+        method: api.auth.projects.deleteStatus.method,
         headers: {
-          "Content-Type": "application/json", 
+          "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ projectId, status }), 
+        body: JSON.stringify({ projectId, status }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to delete status");
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries(["projects"]), 
+    onSuccess: () => queryClient.invalidateQueries(["projects"]),
   });
 }
 
@@ -568,6 +568,68 @@ export function useDeleteProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["projects"]);
+    },
+  });
+}
+
+export function useCreatePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ createdBy, management = {}, employees = {} }) => {
+      const res = await fetch(api.auth.permissions.create.path, {
+        method: api.auth.permissions.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ createdBy, management, employees }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create permission");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["permissions"]);
+    },
+  });
+}
+
+export function useUpdatePermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, management, employees }) => {
+      const res = await fetch(api.auth.permissions.update.path(id), {
+        method: api.auth.permissions.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ management, employees }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update permission");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["permissions"]);
+    },
+  });
+}
+
+export function useGetPermissions() {
+  return useQuery({
+    queryKey: ["permissions"],
+    queryFn: async () => {
+      const res = await fetch(api.auth.permissions.getByAdmin.path, {
+        method: api.auth.permissions.getByAdmin.method,
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to fetch permissions");
+      }
+      return data;
     },
   });
 }

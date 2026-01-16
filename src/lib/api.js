@@ -115,5 +115,19 @@ export const api = {
       path: `${BASE_URL}/api/upload`,
       method: "POST",
     },
+    permissions: {
+      create: {
+        path: `${BASE_URL}/api/permission`,
+        method: "POST",
+      },
+      getByAdmin: {
+        path: `${BASE_URL}/api/permission`,
+        method: "GET",
+      },
+      update: {
+        path: (id) => `${BASE_URL}/api/permission/${id}`,
+        method: "PUT",
+      },
+    },
   },
 };

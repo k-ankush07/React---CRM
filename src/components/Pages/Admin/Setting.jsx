@@ -2,9 +2,11 @@ import { useState } from "react";
 import AdminLayout from "../AdminLayout";
 import ManagementPermissions from "../../ui/ManagementPermissions";
 import EmployeePermissions from "../../ui/EmployeePermissions";
+import { useUser } from "../../Use-auth";
 
 export default function Setting() {
     const [activeTab, setActiveTab] = useState("management");
+    const { data: user } = useUser();
 
     return (
         <AdminLayout>
@@ -40,9 +42,9 @@ export default function Setting() {
 
                     {/* Tab Content */}
                     <div className="bg-white border border-gray-300 rounded-b-lg p-6 min-h-[300px]">
-                        {activeTab === "management" && <ManagementPermissions />}
+                        {activeTab === "management" && <ManagementPermissions adminId={user.userId} />}
 
-                        {activeTab === "employees" && <EmployeePermissions />}
+                        {activeTab === "employees" && <EmployeePermissions  adminId={user.userId} />}
                     </div>
 
                 </div>
