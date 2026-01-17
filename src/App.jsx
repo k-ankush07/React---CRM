@@ -15,7 +15,7 @@ import ResetPassword from "./components/Pages/ResetPassword";
 import HeartbeatAndAutoLogout from "./components/HeartbeatAndAutoLogout";
 import HrDashBoard from "./components/Pages/Hr/HrDashBoard";
 import HolidaysAndPolicies from "./components/Pages/Holidays & Policies";
-import Setting from "./components/Pages/Admin/Setting";
+import Setting from "./components/Pages/Setting";
 import NotFound from "./components/Pages/not-found";
 
 function ProtectedRoute({ component: Component, allowedRoles }) {
@@ -94,7 +94,7 @@ function App() {
           </Route>
           
           <Route path="/setting">
-            <ProtectedRoute component={Setting} allowedRoles={["admin"]} />
+            <ProtectedRoute component={Setting} allowedRoles={["admin", "management"]} />
           </Route>
           <Route path="/management">
             <ProtectedRoute

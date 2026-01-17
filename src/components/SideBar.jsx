@@ -42,7 +42,7 @@ export function Sidebar() {
     { href: "/project", label: "Projects", icon: FolderGit, roles: ["employee"] },
     { href: "/policies", label: "Policies", icon: Tent, roles: ["admin", "management", "employee", "hr"] },
     { href: "/account", label: "Account", icon: CircleUserRound, roles: ["admin", "management", "employee", "hr"] },
-    { href: "/setting", label: "Setting", icon: Settings, roles: ["admin"] },
+    { href: "/setting", label: "Setting", icon: Settings, roles: ["admin", "management"] },
   ];
 
   const filteredLinks = links.filter(link => link.roles.includes(user.role));

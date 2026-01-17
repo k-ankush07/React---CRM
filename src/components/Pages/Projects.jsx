@@ -3,7 +3,7 @@ import SucessToast from "../ui/SucessToast";
 import RoleBasedLayout from "./RoleBasedLayout";
 import {
   useEmployees, useUser, useCreateProject, useProjects, useUpdateProject, useDeleteTask, useRenameProjectStatus,
-  useDragDropTask, useAddProjectStatus, useDeleteStatus
+  useDragDropTask, useAddProjectStatus, useDeleteStatus, useGetPermissions
 } from "../Use-auth";
 import {
   Calendar, Plus, CircleCheck, Flag, CircleStop, Users, GripVertical, X, SendHorizontal,
@@ -64,6 +64,7 @@ export default function Projects() {
   const renameStatusMutation = useRenameProjectStatus();
   const addStatusMutation = useAddProjectStatus();
   const deleteStatusMutation = useDeleteStatus();
+  const { data: existingPermissions, } = useGetPermissions();
   const [statuses, setStatuses] = useState([]);
   const [newStatusName, setNewStatusName] = useState("");
   // State management
@@ -134,6 +135,22 @@ export default function Projects() {
     });
     return initialOrder;
   });
+
+  const isAdmin = currentUser?.role === "admin";
+  const currentUserPermissions = isAdmin
+    ? {
+      management: {
+        manager_view: true,
+        manager_time: true,
+      },
+    }
+    : existingPermissions?.find(p => p.userId === currentUser?.userId);
+
+  const canViewHome =
+    isAdmin || currentUserPermissions?.management?.project_view === true;
+
+  const canViewManagerNewProject =
+    isAdmin || currentUserPermissions?.management?.project_new === true;
 
   useEffect(() => {
     if (active === "team") {
@@ -1197,7 +1214,7 @@ export default function Projects() {
         id: activeProjectId,
         oldStatus: oldStatusLocal,
         newStatus,
-        tasks: tasksToUpdate, 
+        tasks: tasksToUpdate,
       });
     }
     setEditingStatusName(null);
@@ -1438,12 +1455,12 @@ export default function Projects() {
   const renderProjectTasks = useCallback(
     () => (
       <div className="space-y-2 mb-[20px]">
-        <div
+        {canViewManagerNewProject && (<div
           className="px-3 py-1 bg-[#fbe5e9] text-black inline-block rounded cursor-pointer shadow-md hover:shadow-lg transition-shadow"
           onClick={() => setShowAddProjectInput((prev) => !prev)}
         >
           + New Project
-        </div>
+        </div>)}
 
         {showAddProjectInput && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[99999]">
@@ -1504,6 +1521,19 @@ export default function Projects() {
       : [editData.timeline];
   }, [editData?.timeline]);
 
+  if (!canViewHome) {
+    return (
+      <RoleBasedLayout>
+        <div className="relative h-[90.7vh] overflow-hidden">
+          <div className="absolute w-full h-[100%] opacity-[0.1]
+           bg-[url('https://www.hubsyntax.com/uploads/prodcutpages.webp')] 
+          bg-cover bg-center rounded-xl shadow-md border border-gray-200">
+          </div>
+        </div>
+      </RoleBasedLayout>
+    );
+  }
+
   if (isLoading) return <p className="p-6"></p>;
   if (error)
     return <p className="p-6 text-red-600"></p>;
@@ -1519,6 +1549,7 @@ export default function Projects() {
             setActive={setActive}
             active={active}
           />
+
           {renderProjectTasks()}
 
           {active === "calendar" &&

@@ -1,4 +1,4 @@
-import { useEmployees, useProjects, useTotalStaff, useTotalHolidays } from "../Use-auth";
+import { useProjects, useTotalStaff, useTotalHolidays, useGetPermissions, useUser } from "../Use-auth";
 import { useDateRange } from "../Pages/DateRangeContext";
 import { UserRound, Volleyball, Star, AlignStartVertical, EllipsisVertical, TrendingUp, DollarSign, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, LabelList } from 'recharts';
@@ -7,7 +7,17 @@ export default function MainDashBoard() {
     const { start, end } = useDateRange();
     const { data: totalStaff = [] } = useTotalStaff();
     const { data: projects = [] } = useProjects();
-    const { data: holidaysData, refetch } = useTotalHolidays();
+    const { data: holidaysData, } = useTotalHolidays();
+    const { data: existingPermissions, refetch } = useGetPermissions();
+    const { data: user } = useUser();
+   
+    const isAdmin = user?.role === "admin";
+    const currentUserPermissions = isAdmin
+        ? { management: { home_view: true } } 
+        : existingPermissions?.find((p) => p.userId === user?.userId);
+
+    const canViewHome = isAdmin || currentUserPermissions?.management?.home_view;
+
     const activeEmployees = totalStaff.filter(e => e.status === "active");
     const filteredProjects = projects.filter((p) => {
         const createdAt = new Date(p.createdAt);
@@ -69,7 +79,7 @@ export default function MainDashBoard() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Total Staff</p>
-                            <p className="text-3xl font-bold">{activeEmployees.length}</p>
+                            <p className="text-3xl font-bold">{canViewHome ? activeEmployees.length : '-'}</p>
                         </div>
                         <UserRound className="w-12 h-12 opacity-80" />
                     </div>
@@ -79,7 +89,7 @@ export default function MainDashBoard() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Holidays Roster</p>
-                            <p className="text-3xl font-bold">{holidaysData?.holidays?.length || 0}
+                            <p className="text-3xl font-bold">{canViewHome ? holidaysData?.holidays?.length : '-'}
                             </p>
                         </div>
                         <Volleyball className="w-12 h-12 opacity-80" />
@@ -90,7 +100,7 @@ export default function MainDashBoard() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">Total Projects</p>
-                            <p className="text-3xl font-bold">{filteredProjects.length}</p>
+                            <p className="text-3xl font-bold">{canViewHome ? filteredProjects.length : '-'}</p>
                         </div>
                         <Star className="w-12 h-12 opacity-80" />
                     </div>

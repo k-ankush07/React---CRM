@@ -1,283 +1,420 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Input } from '../ui/Input';
+import { Input } from "../ui/Input";
+import {
+  useUpdatePermission,
+  useCreatePermission,
+  useGetPermissions,
+  useTotalStaff,
+  useProjects
+} from "../Use-auth";
 import SucessToast from "./SucessToast";
-import { useCreatePermission, useUpdatePermission, useGetPermissions } from "../Use-auth";
 
-// ---------------- PERMISSIONS DATA ----------------
 const permissionsData = [
-    { label: "Home", key: "home", children: [{ label: "Home View", key: "home_view" }] },
-    {
-        label: "Employees", key: "employees",
-        children: [
-            { label: "Employees View", key: "employees_view" },
-            { label: "Employees Time Tracking", key: "employees_time" },
-            { label: "Employees All Tracked Days", key: "employees_days" }
-        ]
-    },
-    {
-        label: "Project", key: "project",
-        children: [
-            { label: "View", key: "project_view" },
-            { label: "Update Status", key: "status_update" },
-        ],
-    },
+  { label: "Home", key: "home", children: [{ label: "Home View", key: "home_view" }] },
+  {
+    label: "Employees",
+    key: "employees",
+    children: [
+      { label: "Employees View", key: "employees_view" },
+      { label: "Employees Time Tracking", key: "employees_time" },
+      { label: "Employees All Tracked Days", key: "employees_days" },
+    ],
+  },
+  {
+    label: "Project",
+    key: "project",
+    children: [
+      { label: "View", key: "project_view" },
+      {
+        label: "Project Show", key: "project_show",
+      },
+      { label: "Update Status", key: "status_update" },
+    ],
+  },
 ];
 
 const countChecked = (permission, selected) => {
-    if (!permission.children) return selected[permission.key] ? 1 : 0;
-    return permission.children.reduce(
-        (sum, child) => sum + countChecked(child, selected),
-        selected[permission.key] ? 1 : 0
-    );
+  if (!permission.children) return selected[permission.key] ? 1 : 0;
+  return permission.children.reduce(
+    (sum, child) => sum + countChecked(child, selected),
+    selected[permission.key] ? 1 : 0
+  );
 };
 
-function PermissionItem({ permission, selected, toggle, search, expandedAll }) {
-    const hasChildren = permission.children?.length > 0;
-    const isChecked = selected[permission.key] || false;
+function PermissionItem({
+  permission,
+  selected,
+  toggle,
+  search,
+  expandedAll,
+  indeterminate,
+  projects,
+  selectedProjects,
+  setSelectedProjects,
+  userId
+}) {
+  const hasChildren = permission.children?.length > 0;
+  const isChecked = !!selected[permission.key];
+  const [open, setOpen] = useState(false);
 
-    const [localExpanded, setLocalExpanded] = useState(false);
+  useEffect(() => {
+    setOpen(expandedAll);
+  }, [expandedAll]);
 
-    const isOpen = localExpanded;
-
-    useEffect(() => {
-        setLocalExpanded(expandedAll);
-    }, [expandedAll]);
-
-
-    const matchesSearch = permission.label.toLowerCase().includes(search.toLowerCase());
-    const showItem =
-        matchesSearch ||
-        (hasChildren &&
-            permission.children.some((child) =>
-                child.label.toLowerCase().includes(search.toLowerCase())
-            ));
-
-    if (!showItem) return null;
-
-    const totalChildren = hasChildren ? permission.children.length : 1;
-    const checkedChildren = hasChildren ? countChecked(permission, selected) : isChecked ? 1 : 0;
-
-    return (
-        <div className="ml-4 mb-2">
-            <div className="flex items-center justify-between border border-gray-300 rounded px-3 py-2 cursor-pointer permission"
-                onClick={() => setLocalExpanded((prev) => !prev)}>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                            e.stopPropagation();
-                            toggle(permission.key, permission.children || []);
-                        }}
-                        className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="font-sm text-gray-700" onClick={() => setLocalExpanded((prev) => !prev)}>
-                        {permission.label}</span>
-                </label>
-
-                {hasChildren && (
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setLocalExpanded((prev) => !prev);
-                            }}
-                            className="w-5 h-5 flex items-center justify-center text-gray-500"
-                        >
-                            {localExpanded ? <ChevronUp /> : <ChevronDown />}
-                        </button>
-                        <span className="text-sm text-gray-500">
-                            {checkedChildren}/{totalChildren}
-                        </span>
-                    </div>
-                )}
-            </div>
-
-
-            {hasChildren && isOpen && (
-                <div className="mt-1 bg-white">
-                    <div className="permission-child">
-                        {permission.children.map((child) => (
-                            <PermissionItem
-                                key={child.key}
-                                permission={child}
-                                selected={selected}
-                                toggle={toggle}
-                                search={search}
-                                expandedAll={expandedAll}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
+  const matches =
+    permission.label.toLowerCase().includes(search.toLowerCase()) ||
+    permission.children?.some(c =>
+      c.label.toLowerCase().includes(search.toLowerCase())
     );
+
+  if (!matches) return null;
+
+  const totalChildren = hasChildren ? permission.children.length : 1;
+  const checkedChildren = hasChildren ? countChecked(permission, selected) : isChecked ? 1 : 0;
+
+  return (
+    <div className="ml-4 mb-2">
+      <div
+        className="flex justify-between items-center border rounded px-3 py-2 cursor-pointer"
+        onClick={() => setOpen(p => !p)}
+      >
+        <label className="flex gap-2 items-center">
+          <input
+            type="checkbox"
+            checked={isChecked}
+            ref={el => {
+              if (el) el.indeterminate = indeterminate?.[permission.key] || false;
+            }}
+            onChange={e => {
+              e.stopPropagation();
+              toggle(permission.key, permission.children || []);
+            }}
+          />
+          {permission.label}
+        </label>
+
+        {hasChildren && (
+          <div className="flex items-center gap-3 text-gray-500">
+            <span className="text-sm">{checkedChildren}/{totalChildren}</span>
+            {open ? <ChevronUp /> : <ChevronDown />}
+          </div>
+        )}
+      </div>
+
+      {hasChildren && open && (
+        <div className="mt-1">
+          {permission.children.map(child => (
+            <div key={child.key}>
+              <PermissionItem
+                permission={child}
+                selected={selected}
+                toggle={toggle}
+                search={search}
+                expandedAll={expandedAll}
+                indeterminate={indeterminate}
+                projects={projects}
+                selectedProjects={selectedProjects}
+                setSelectedProjects={setSelectedProjects}
+                userId={userId}
+              />
+
+              {/* Show projects when Project Show is checked */}
+              {child.key === "project_show" && selected[child.key] && (
+                <div className="ml-8 mt-2 flex flex-wrap gap-2 mb-[10px]">
+                  {projects.map(p => (
+                    <label key={p._id} className="flex items-center gap-2 border rounded px-2 py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedProjects[userId]?.includes(p._id.toString()) || false}
+                        onChange={e => {
+                          setSelectedProjects(prev => {
+                            const current = prev[userId] || [];
+                            let nextList = [];
+                            if (e.target.checked) {
+                              nextList = [...current, p._id.toString()];
+                            } else {
+                              nextList = current.filter(id => id !== p._id.toString());
+                            }
+                            return { ...prev, [userId]: nextList };
+                          });
+                        }}
+                      />
+                      {p.projectName}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function EmployeePermissions({ adminId }) {
-    const [selected, setSelected] = useState({});
-    const [search, setSearch] = useState("");
-    const [expandedAll, setExpandedAll] = useState(false);
-    const [toast, setToast] = useState({
-        show: false,
-        message: "",
-        type: "success",
+  const [selected, setSelected] = useState({});
+  const [search, setSearch] = useState("");
+  const [expandedAll, setExpandedAll] = useState(false);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const { data: staffData = [] } = useTotalStaff();
+  const { data: permissionsApi = [], refetch } = useGetPermissions();
+  const createPermission = useCreatePermission();
+  const updatePermission = useUpdatePermission();
+  const { data: projects = [] } = useProjects();
+  const [selectedProjects, setSelectedProjects] = useState({});
+
+  const employeeUsers = staffData.filter(u => u.role === "employee");
+
+  // Initialize selected projects per employee
+  useEffect(() => {
+    const next = {};
+    selectedEmployeeIds.forEach(userId => {
+      const existing = permissionsApi.find(p => p.userId === userId);
+      next[userId] = existing?.employees?.project_id?.map(id => id.toString()) || [];
     });
-    const createPermission = useCreatePermission();
-    const { data: existingPermissions, refetch } = useGetPermissions();
-    const updatePermission = useUpdatePermission();
+    setSelectedProjects(next);
+  }, [selectedEmployeeIds, permissionsApi]);
 
-    useEffect(() => {
-        if (!existingPermissions || !adminId) return;
+  useEffect(() => {
+    const next = {};
+    selectedEmployeeIds.forEach(userId => {
+      next[userId] = permissionsApi.find(p => p.userId === userId)?.employees || {};
+    });
+    setSelected(next);
+  }, [selectedEmployeeIds, permissionsApi]);
 
-        const adminPerm = existingPermissions.find(p => p.createdBy === adminId);
-        if (adminPerm) setSelected(adminPerm.employees || {});
-    }, [existingPermissions, adminId]);
+  const togglePermissionForUser = (userId, key, children = []) => {
+    setSelected(prev => {
+      const userPerm = { ...(prev[userId] || {}) };
+      let value = !userPerm[key];
+      userPerm[key] = value;
 
-    const togglePermission = (key, children = []) => {
-        const newSelected = { ...selected, [key]: !selected[key] };
-
-        const toggleChildren = (list, value) => {
-            list.forEach((child) => {
-                newSelected[child.key] = value;
-                if (child.children) toggleChildren(child.children, value);
-            });
+      if (children.length) {
+        const toggleChildren = list => {
+          list.forEach(c => {
+            userPerm[c.key] = value;
+            if (c.children) toggleChildren(c.children);
+          });
         };
+        toggleChildren(children);
+      }
 
-        if (children.length) toggleChildren(children, newSelected[key]);
-        setSelected(newSelected);
+      return { ...prev, [userId]: userPerm };
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const keys = [];
+    const collect = list =>
+      list.forEach(i => {
+        keys.push(i.key);
+        if (i.children) collect(i.children);
+      });
+    collect(permissionsData);
+
+    const next = { ...selected };
+
+    selectedEmployeeIds.forEach(userId => {
+      const allChecked = keys.every(k => next[userId]?.[k]);
+      const perms = {};
+      keys.forEach(k => (perms[k] = !allChecked));
+      next[userId] = perms;
+    });
+
+    setSelected(next);
+  };
+
+  const getMergedSelected = () => {
+    const merged = {};
+    const indeterminate = {};
+
+    const walk = perm => {
+      let all = true;
+      let some = false;
+
+      selectedEmployeeIds.forEach(uid => {
+        const p = selected[uid] || {};
+        if (p[perm.key]) some = true;
+        else all = false;
+      });
+
+      merged[perm.key] = all;
+      indeterminate[perm.key] = some && !all;
+
+      perm.children?.forEach(walk);
     };
 
-    const toggleSelectAll = () => {
-        const allKeys = [];
-        const collectKeys = (list) => {
-            list.forEach((item) => {
-                allKeys.push(item.key);
-                if (item.children) collectKeys(item.children);
-            });
-        };
-        collectKeys(permissionsData);
+    permissionsData.forEach(walk);
+    return { merged, indeterminate };
+  };
 
-        const allSelected = allKeys.every((k) => selected[k]);
-        const next = {};
-        allKeys.forEach((k) => (next[k] = !allSelected));
-        setSelected(next);
-    };
+  const { merged, indeterminate } = getMergedSelected();
 
-    const handleSave = () => {
-        if (!adminId) {
-            setToast({
-                show: true,
-                message: "Admin ID not found",
-                type: "error",
-            });
-            return;
-        }
+  const handleSave = () => {
+    if (!selectedEmployeeIds.length) {
+      setToast({ show: true, message: "Select at least one employee", type: "error" });
+      return;
+    }
 
-        const existing = existingPermissions?.find(p => p.createdBy === adminId);
+    selectedEmployeeIds.forEach(userId => {
+      const perms = selected[userId] || {};
+      const employees = {};
 
-        const payload = {
-            employees: selected,
-            management: existing?.management || {},
-        };
+      Object.keys(perms).forEach(k => {
+        if (perms[k]) employees[k] = true;
+      });
 
-        if (existing) {
-            updatePermission.mutate(
-                { id: existing._id, ...payload },
-                {
-                    onSuccess: () => {
-                        setToast({
-                            show: true,
-                            message: "Employee permissions updated successfully!",
-                            type: "success",
-                        });
-                    },
-                    onError: (err) => {
-                        setToast({
-                            show: true,
-                            message: err?.message || "Failed to update permissions",
-                            type: "error",
-                        });
-                    },
-                }
-            );
-        } else {
-            createPermission.mutate(
-                { createdBy: adminId, ...payload },
-                {
-                    onSuccess: () => {
-                        refetch();
-                        setToast({
-                            show: true,
-                            message: "Employee permissions created successfully!",
-                            type: "success",
-                        });
-                    },
-                    onError: (err) => {
-                        setToast({
-                            show: true,
-                            message: err?.message || "Failed to create permissions",
-                            type: "error",
-                        });
-                    },
-                }
-            );
-        }
-    };
+      if (employees.project_show) {
+        employees.project_id = selectedProjects[userId] || [];
+      }
+
+      const existing = permissionsApi.find(p => p.userId === userId);
+
+      if (existing) {
+        updatePermission.mutate(
+          {
+            id: existing._id,
+            employees,
+            management: {}
+          },
+          { onSuccess: refetch }
+        );
+      } else {
+        createPermission.mutate(
+          {
+            adminBy: adminId,
+            userId,
+            role: "employee",
+            employees,
+            management: {}
+          },
+          { onSuccess: refetch }
+        );
+      }
+    });
+
+    setToast({ show: true, message: "Employee permissions saved", type: "success" });
+  };
 
 
-    return (
-        <div className="p-4 border rounded bg-gray-50 text-[14px]">
-            {toast.show && (
-                <SucessToast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast({ ...toast, show: false })}
-                />
-            )}
-            <Input
-                type="text"
-                placeholder="Search permissions..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="mb-4 p-2 border rounded w-full"
+  return (
+    <>
+      <div className="mb-6">
+        <label className="font-semibold text-lg block mb-3 text-gray-700">
+          Select Employee(s)
+        </label>
+
+        <div className="border border-gray-200 rounded-lg shadow-sm p-4 bg-white">
+          <label className="inline-flex items-center gap-3 cursor-pointer mb-3 px-3 py-2 rounded-md border">
+            <input
+              type="checkbox"
+              checked={selectedEmployeeIds.length === employeeUsers.length}
+              onChange={e =>
+                setSelectedEmployeeIds(
+                  e.target.checked ? employeeUsers.map(u => u.userId) : []
+                )
+              }
             />
+            Select All Users
+          </label>
 
-            <div className="flex justify-between items-center mb-3">
-                <label className="flex items-center space-x-2">
-                    <input
-                        type="checkbox"
-                        checked={Object.keys(selected).length > 0 && Object.values(selected).every(Boolean)}
-                        onChange={toggleSelectAll}
-                        className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="font-medium">Select all permissions</span>
-                </label>
-
-                <div className="flex gap-[20px]">
-                    <button className="text-green-500 text-sm" onClick={handleSave}>
-                        Save
-                    </button>
-                    <button
-                        className="text-blue-500 text-sm"
-                        onClick={() => setExpandedAll((prev) => !prev)}
-                    >
-                        {expandedAll ? "Collapse all" : "Expand all"}
-                    </button>
-                </div>
-            </div>
-
-            {permissionsData.map((perm) => (
-                <PermissionItem
-                    key={perm.key}
-                    permission={perm}
-                    selected={selected}
-                    toggle={togglePermission}
-                    search={search}
-                    expandedAll={expandedAll}
+          <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+            {employeeUsers.map(u => (
+              <label key={u.userId} className="flex items-baseline gap-3 px-3 py-2 border rounded cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedEmployeeIds.includes(u.userId)}
+                  onChange={e =>
+                    setSelectedEmployeeIds(
+                      e.target.checked
+                        ? [...selectedEmployeeIds, u.userId]
+                        : selectedEmployeeIds.filter(id => id !== u.userId)
+                    )
+                  }
                 />
+                <div>
+                  <div>{u.fullName}</div>
+                  <div className="text-sm text-gray-500">({u.username})</div>
+                </div>
+              </label>
             ))}
+          </div>
         </div>
-    );
+      </div>
+
+      {selectedEmployeeIds.length === 0 ? (
+        <div className="p-4 border rounded bg-gray-100 text-sm">
+          Select at least one employee to assign permissions
+        </div>
+      ) : (
+        <div className="p-4 border rounded bg-gray-50 text-sm">
+          <Input
+            placeholder="Search permissions..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="mb-4"
+          />
+
+          <div className="flex justify-between items-center mb-3">
+            <label className="flex gap-2 items-center">
+              <input
+                type="checkbox"
+                checked={Object.values(merged).every(Boolean)}
+                ref={el => {
+                  if (el) {
+                    const some = Object.values(merged).some(v => v);
+                    const all = Object.values(merged).every(v => v);
+                    el.indeterminate = some && !all;
+                  }
+                }}
+                onChange={toggleSelectAll}
+              />
+              Select All Permissions
+            </label>
+
+            <div className="flex gap-4">
+              <button onClick={handleSave} className="text-green-600">Save</button>
+              <button onClick={() => setExpandedAll(p => !p)} className="text-blue-600">
+                {expandedAll ? "Collapse All" : "Expand All"}
+              </button>
+            </div>
+          </div>
+
+          {selectedEmployeeIds.map(userId => (
+            <div key={userId} className="mb-4 border p-3 rounded bg-white">
+              <div className="font-semibold mb-2">
+                {employeeUsers.find(u => u.userId === userId)?.fullName}
+              </div>
+              {permissionsData.map(perm => (
+                <PermissionItem
+                  key={perm.key}
+                  permission={perm}
+                  selected={selected[userId] || {}}
+                  toggle={(key, children) => togglePermissionForUser(userId, key, children)}
+                  search={search}
+                  expandedAll={expandedAll}
+                  indeterminate={{}}
+                  projects={projects}
+                  selectedProjects={selectedProjects}
+                  setSelectedProjects={setSelectedProjects}
+                  userId={userId}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {toast.show && (
+        <SucessToast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, show: false })}
+        />
+      )}
+    </>
+  );
 }

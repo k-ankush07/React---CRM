@@ -4,7 +4,7 @@ import {
   CircleCheck, SendHorizontal
 } from "lucide-react";
 import EmployeeLayout from "../EmployeeLayout";
-import { useUser, useProjects, useUpdateProject } from "../../Use-auth";
+import { useUser, useProjects, useUpdateProject, useGetPermissions } from "../../Use-auth";
 import ProjectList from "../../ui/ProjectList";
 import TaskEmployees from "../../ui/TaskEmployees";
 import TaskPriority from "../../ui/TaskPriority";
@@ -41,6 +41,7 @@ export default function EmployeeProject() {
   const { data: user } = useUser();
   const { data: projects = [], refetch } = useProjects();
   const updateProject = useUpdateProject();
+  const { data: existingPermissions } = useGetPermissions();
   const [collapsedStatuses, setCollapsedStatuses] = useState({});
   const [showDescriptionPopup, setShowDescriptionPopup] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState(null);
@@ -70,6 +71,15 @@ export default function EmployeeProject() {
   const [selectedTasks, setSelectedTasks] = useState({});
   const [allStatuses, setAllStatuses] = useState([]);
   const textareaRef = useRef(null);
+
+
+  const currentUserPermissions = existingPermissions?.find(
+    (p) => p.userId === user?.userId
+  );
+
+  const status_update = currentUserPermissions?.status_update ?? currentUserPermissions?.employees?.status_update ?? false;
+  const project_view = currentUserPermissions?.project_view ?? currentUserPermissions?.employees?.project_view ?? false;
+  const projectIds = currentUserPermissions?.project_id ?? currentUserPermissions?.employees?.project_id ?? [];
 
   useLayoutEffect(() => {
     if (textareaRef.current) {
@@ -342,30 +352,31 @@ export default function EmployeeProject() {
                 >
                   {task.status || "-"}
                 </div>
-                {showStatusDropdownFor === task._id && (
-                  <div
-                    id={`status-dropdown-${task._id}`}
-                    className="absolute left-0 mt-2 bg-white border rounded shadow p-2 z-50 min-w-[120px]"
-                  >
-                    {allStatuses.map((s) => {
-                      const isActive = s === task.status;
-                      return (
-                        <div
-                          key={s}
-                          onClick={() => {
-                            handleBulkStatusUpdate(s, task);
-                            setShowStatusDropdownFor(null);
-                          }}
-                          className={`cursor-pointer font-normal text-sm px-2 py-1 rounded mt-2 ${getStatusColor(s)} ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""
-                            }`}
-                        >
-                          {s}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
+                {status_update && (<>
+                  {showStatusDropdownFor === task._id && (
+                    <div
+                      id={`status-dropdown-${task._id}`}
+                      className="absolute left-0 mt-2 bg-white border rounded shadow p-2 z-50 min-w-[120px]"
+                    >
+                      {allStatuses.map((s) => {
+                        const isActive = s === task.status;
+                        return (
+                          <div
+                            key={s}
+                            onClick={() => {
+                              handleBulkStatusUpdate(s, task);
+                              setShowStatusDropdownFor(null);
+                            }}
+                            className={`cursor-pointer font-normal text-sm px-2 py-1 rounded mt-2 ${getStatusColor(s)} ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""
+                              }`}
+                          >
+                            {s}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>)}
               </div>
               <div className="w-1/5 flex">
                 <div className="inline-flex gap-[10px] items-center">
@@ -502,6 +513,19 @@ export default function EmployeeProject() {
     refetch,
   ]);
 
+  if (!project_view) {
+    return (
+      <EmployeeLayout>
+        <div className="relative h-[90.7vh] overflow-hidden">
+          <div className="absolute w-full h-[100%] opacity-[0.1]
+             bg-[url('https://www.hubsyntax.com/uploads/prodcutpages.webp')] 
+            bg-cover bg-center rounded-xl shadow-md border border-gray-200">
+          </div>
+        </div>
+      </EmployeeLayout>
+    );
+  }
+
   return (
     <EmployeeLayout>
       <div className="relative h-[90.7vh]">
@@ -512,6 +536,7 @@ export default function EmployeeProject() {
             activeProjectId={activeProjectId}
             setActiveProjectId={setActiveProjectId}
             currentUser={user}
+            projectIds={projectIds}
           />
 
           {activeProjectId &&

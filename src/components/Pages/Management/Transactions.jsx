@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import ManagementLayout from "../ManagementLayout";
-import { useCreateContracts, useTotalContracts, useDeleteContract, useUpdateContract } from "../../Use-auth";
+import {
+    useCreateContracts, useTotalContracts, useDeleteContract,
+    useUpdateContract, useGetPermissions, useUser
+} from "../../Use-auth";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import SuccessToast from "../../ui/SucessToast";
@@ -111,6 +114,8 @@ export default function Transactions() {
     const { mutateAsync: createContract } = useCreateContracts();
     const { mutate: deleteContract } = useDeleteContract();
     const { mutateAsync: updateContract } = useUpdateContract();
+    const { data: existingPermissions, } = useGetPermissions();
+    const { data: user } = useUser();
     const [editingContract, setEditingContract] = useState(null);
 
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -132,6 +137,22 @@ export default function Transactions() {
     const [selectedContractTitles, setSelectedContractTitles] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedRange, setSelectedRange] = useState(null);
+
+    const isAdmin = user?.role === "admin";
+    const currentUserPermissions = isAdmin
+        ? {
+            management: {
+                manager_view: true,
+                manager_time: true,
+            },
+        }
+        : existingPermissions?.find(p => p.userId === user?.userId);
+
+    const canViewHome =
+        isAdmin || currentUserPermissions?.management?.transaction_view === true;
+
+    const canViewManagerNew =
+        isAdmin || currentUserPermissions?.management?.transaction_new === true;
 
     const formatDate = (date) =>
         new Date(date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
@@ -346,93 +367,95 @@ export default function Transactions() {
                 <div className="relative z-[99] h-full overflow-y-auto p-6 space-y-8">
                     {toastMessage && <SuccessToast message={toastMessage} />}
 
-                    <div className="mb-4 flex justify-end gap-[20px]">
-                        <Button
-                            onClick={() => setShowCreateForm((prev) => !prev)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                        >
-                            {showCreateForm ? "Hide Create Contract" : "Show Create Contract"}
-                        </Button>
-                        <input
-                            type="file"
-                            accept=".csv"
-                            hidden
-                            id="csvInput"
-                            onChange={(e) => handleCSVUpload(e.target.files[0])}
-                        />
-                        <Button
-                            className="px-4 py-2 h-[40px] bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                            onClick={() => document.getElementById("csvInput").click()}
-                        >
-                            Import CSV
-                        </Button>
-                    </div>
+                   {canViewManagerNew && ( <>
+                        <div className="mb-4 flex justify-end gap-[20px]">
+                            <Button
+                                onClick={() => setShowCreateForm((prev) => !prev)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                            >
+                                {showCreateForm ? "Hide Create Contract" : "Show Create Contract"}
+                            </Button>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                hidden
+                                id="csvInput"
+                                onChange={(e) => handleCSVUpload(e.target.files[0])}
+                            />
+                            <Button
+                                className="px-4 py-2 h-[40px] bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                                onClick={() => document.getElementById("csvInput").click()}
+                            >
+                                Import CSV
+                            </Button>
+                        </div>
 
-                    {/* Create Contract Form */}
-                    {(showCreateForm || editingContract) && (
-                        <div className="p-6 border border-gray-300 rounded-lg shadow-md bg-white space-y-6 mb-[20px]">
-                            <h3 className="text-2xl font-semibold text-gray-800 mb-4"> {editingContract ? "Edit Contract" : "Create Contract"}</h3>
-                            <form onSubmit={handleSubmit} className="space-y-4 text-[14px]">
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Date</label>
-                                        <Input type="date" name="date" value={form.date} onChange={handleChange} className={inputClass} required />
+                        {/* Create Contract Form */}
+                        {(showCreateForm || editingContract) && (
+                            <div className="p-6 border border-gray-300 rounded-lg shadow-md bg-white space-y-6 mb-[20px]">
+                                <h3 className="text-2xl font-semibold text-gray-800 mb-4"> {editingContract ? "Edit Contract" : "Create Contract"}</h3>
+                                <form onSubmit={handleSubmit} className="space-y-4 text-[14px]">
+                                    <div className="flex flex-wrap gap-4">
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Date</label>
+                                            <Input type="date" name="date" value={form.date} onChange={handleChange} className={inputClass} required />
+                                        </div>
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Contract Type</label>
+                                            <select name="type" value={form.type} onChange={handleChange} className={inputClass} required>
+                                                <option value="">Select Contract Type</option>
+                                                {transactionTypes.map((t) => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Contract Type</label>
-                                        <select name="type" value={form.type} onChange={handleChange} className={inputClass} required>
-                                            <option value="">Select Contract Type</option>
-                                            {transactionTypes.map((t) => (
-                                                <option key={t} value={t}>{t}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Contract Title</label>
-                                        <Input type="text" name="title" value={form.title} onChange={handleChange} className={inputClass} required />
+                                    <div className="flex flex-wrap gap-4">
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Contract Title</label>
+                                            <Input type="text" name="title" value={form.title} onChange={handleChange} className={inputClass} required />
+                                        </div>
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Contract Subtitle</label>
+                                            <Input type="text" name="subtitle" value={form.subtitle} onChange={handleChange} className={inputClass} />
+                                        </div>
                                     </div>
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Contract Subtitle</label>
-                                        <Input type="text" name="subtitle" value={form.subtitle} onChange={handleChange} className={inputClass} />
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Client Name</label>
-                                        <Input type="text" name="clientName" value={form.clientName} onChange={handleChange} className={inputClass} required />
+                                    <div className="flex flex-wrap gap-4">
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Client Name</label>
+                                            <Input type="text" name="clientName" value={form.clientName} onChange={handleChange} className={inputClass} required />
+                                        </div>
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Amount</label>
+                                            <Input type="number" name="amount" value={form.amount} onChange={handleChange} className={inputClass} required />
+                                        </div>
                                     </div>
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Amount</label>
-                                        <Input type="number" name="amount" value={form.amount} onChange={handleChange} className={inputClass} required />
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex-1 flex flex-col">
-                                        <label className="mb-1 font-medium">Status</label>
-                                        <select name="status" value={form.status} onChange={handleChange} className={inputClass}>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
+                                    <div className="flex flex-wrap gap-4">
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="mb-1 font-medium">Status</label>
+                                            <select name="status" value={form.status} onChange={handleChange} className={inputClass}>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Completed">Completed</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex justify-end">
-                                    <Button type="submit" className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-black bg-[#fbe5e9] hover:bg-[#fdf9fb] shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200" disabled={loading}>
-                                        {loading ? (editingContract ? "Updating..." : "Creating...") : (editingContract ? "Update Contract" : "Create Contract")}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>)}
+                                    <div className="flex justify-end">
+                                        <Button type="submit" className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-black bg-[#fbe5e9] hover:bg-[#fdf9fb] shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200" disabled={loading}>
+                                            {loading ? (editingContract ? "Updating..." : "Creating...") : (editingContract ? "Update Contract" : "Create Contract")}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>)}
+                    </>)}
 
                     {/* Transactions Table & Filters */}
-                    <div className="mb-6">
+                   {canViewHome && ( <div className="mb-6">
                         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Transactions</h3>
                         <div className="flex gap-[20px] mb-[20px] flex-wrap text-[14px] text-gray-700">
                             <div className="flex-1 min-w-[200px]">
@@ -555,7 +578,7 @@ export default function Transactions() {
                                 <div className="py-6 text-center text-gray-500">No transactions found</div>
                             )}
                         </div>
-                    </div>
+                    </div>)}
                 </div>
             </div>
         </ManagementLayout>

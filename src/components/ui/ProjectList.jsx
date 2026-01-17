@@ -4,7 +4,7 @@ import { useDateRange } from "../Pages/DateRangeContext";
 import { useUpdateProjectName, useDeleteProject, useAddProjectStatus } from "../Use-auth";
 import { Input } from "./Input";
 
-const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, currentUser }) => {
+const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, currentUser, projectIds }) => {
   const { start, end } = useDateRange();
   const [editingProject, setEditingProject] = useState(null);
   const [newProjectName, setNewProjectName] = useState("");
@@ -48,12 +48,9 @@ const ProjectList = ({ projects = [], activeProjectId, setActiveProjectId, curre
     })
     .filter((project) => {
       if (!isEmployee) return true;
-      const allTasks = Object.values(project.statusTask || {}).flat();
-      return allTasks.some((task) =>
-        task.assignedEmployees?.some(
-          (emp) => emp.username === currentUser.fullName
-        )
-      );
+
+      const projectIdStr = project._id.toString();
+      return projectIds.map(id => id.toString()).includes(projectIdStr);
     });
 
   const handleRenameClick = (project) => {

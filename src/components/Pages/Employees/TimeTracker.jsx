@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import EmployeeLayout from "../EmployeeLayout";
-import { useUserDetails, useUser } from "../../Use-auth";
+import { useUserDetails, useUser, useGetPermissions } from "../../Use-auth";
 import MonthlyCalendar from "../../ui/MonthlyCalendar";
 
 function formatDuration(ms) {
@@ -16,8 +16,18 @@ function formatDuration(ms) {
 export default function TimeTracker() {
   const { data: user } = useUser();
   const { data: entries } = useUserDetails();
+  const { data: existingPermissions, refetch } = useGetPermissions();
+
   const [now, setNow] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const currentUserPermissions = existingPermissions?.find(
+    (p) => p.userId === user?.userId
+  );
+
+  const employees_days = currentUserPermissions?.employees_days ?? currentUserPermissions?.employees?.employees_days ?? false;
+  const employees_time = currentUserPermissions?.employees_time ?? currentUserPermissions?.employees?.employees_time ?? false;
+  const employees_view = currentUserPermissions?.employees_view ?? currentUserPermissions?.employees?.employees_view ?? false;
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -53,9 +63,9 @@ export default function TimeTracker() {
         if (s.endTime) {
           end = new Date(s.endTime).getTime();
         } else if (isToday) {
-          end = now.getTime(); // ✅ only today is live
+          end = now.getTime();
         } else {
-          return null; // ❌ ignore broken past sessions
+          return null;
         }
 
         return { start, end };
@@ -85,6 +95,19 @@ export default function TimeTracker() {
     return total;
   }
 
+  if (!employees_view) {
+    return (
+      <EmployeeLayout>
+        <div className="relative h-[90.7vh] overflow-hidden">
+          <div className="absolute w-full h-[100%] opacity-[0.2]
+            bg-[url('https://www.hubsyntax.com/uploads/clock-wise.jpeg')]
+            bg-cover bg-center rounded-xl shadow-md border border-gray-200">
+          </div>
+        </div>
+      </EmployeeLayout>
+    );
+  }
+
   return (
     <EmployeeLayout>
       <div className="relative h-[90.7vh] overflow-hidden">
@@ -93,15 +116,14 @@ export default function TimeTracker() {
         >
         </div>
         <div className="relative z-20 h-full overflow-y-auto p-6">
-          <h2 className="text-[20px] font-semibold mb-4">Time Tracker</h2>
+          {employees_days && (<h2 className="text-[20px] font-semibold mb-4">Time Tracker</h2>)}
 
           <div className="flex flex-col md:flex-row gap-6  z-[9999]">
-
             {/* LEFT SIDE */}
             <div className="flex-1 space-y-8">
 
               {/* ================= TOP SECTION — FILTERED ================= */}
-              <div>
+              {employees_days && (<div>
                 <h3 className="text-lg font-semibold mb-2">
                   Selected Date Summary
                 </h3>
@@ -139,10 +161,10 @@ export default function TimeTracker() {
                     No entries for selected date
                   </p>
                 )}
-              </div>
+              </div>)}
 
               {/* ================= BOTTOM SECTION — ALL DATA ================= */}
-              <div>
+              {employees_time && (<div>
                 <h3 className="text-lg font-semibold mt-6 mb-2">
                   All Tracked Days
                 </h3>
@@ -171,7 +193,7 @@ export default function TimeTracker() {
                     </div>
                   );
                 })}
-              </div>
+              </div>)}
             </div>
 
             {/* RIGHT SIDE CALENDAR */}

@@ -1,5 +1,5 @@
 import EmployeeLayout from "../EmployeeLayout";
-import { useUser, useProjects, useTotalHolidays } from "../../Use-auth";
+import { useUser, useProjects, useTotalHolidays, useGetPermissions } from "../../Use-auth";
 import { useDateRange } from "../DateRangeContext";
 import { UserRound, TableCellsSplit, Star, Volleyball } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, LabelList } from 'recharts';
@@ -9,7 +9,15 @@ export default function EmployeeDashboard() {
   const { start, end } = useDateRange();
   const { data: projects = [] } = useProjects();
   const { data: user } = useUser();
-  const { data: holidaysData, refetch } = useTotalHolidays();
+  const { data: holidaysData, } = useTotalHolidays();
+  const { data: existingPermissions, refetch } = useGetPermissions();
+
+  const currentUserPermissions = existingPermissions?.find(
+    (p) => p.userId === user?.userId
+  );
+
+  const canViewHome =
+    currentUserPermissions?.employees?.home_view === true;
 
   // Filter projects in date range
   const filteredProjects = projects.filter(p => {
@@ -73,7 +81,7 @@ export default function EmployeeDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">Completed Tasks</p>
-                <p className="text-3xl font-bold">{completedTasks}</p>
+                <p className="text-3xl font-bold">{canViewHome ? completedTasks : '-'}</p>
               </div>
               <UserRound className="w-12 h-12 opacity-80" />
             </div>
@@ -82,7 +90,7 @@ export default function EmployeeDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Holidays Roster</p>
-                <p className="text-3xl font-bold">{holidaysData?.holidays?.length || 0}
+                <p className="text-3xl font-bold">{canViewHome ? holidaysData?.holidays?.length || 0 : '-'}
                 </p>
               </div>
               <Volleyball className="w-12 h-12 opacity-80" />
@@ -92,7 +100,7 @@ export default function EmployeeDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">Assigned Tasks</p>
-                <p className="text-3xl font-bold">{totalAssignedTasks}</p>
+                <p className="text-3xl font-bold">{canViewHome ? totalAssignedTasks : '-'}</p>
               </div>
               <TableCellsSplit className="w-12 h-12 opacity-80" />
             </div>
@@ -102,7 +110,7 @@ export default function EmployeeDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Total Projects</p>
-                <p className="text-3xl font-bold">{assignedProjects.length}</p>
+                <p className="text-3xl font-bold">{canViewHome ? assignedProjects.length : '-'}</p>
               </div>
               <Star className="w-12 h-12 opacity-80" />
             </div>

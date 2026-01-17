@@ -1,4 +1,4 @@
-import { useUser, useForgotPassword, useCreateUser } from "../Use-auth";
+import { useUser, useForgotPassword, useCreateUser, useGetPermissions } from "../Use-auth";
 import { useState } from "react";
 import { Sidebar } from "../SideBar";
 import Dashboard from "../ui/Dashboard";
@@ -10,6 +10,7 @@ export default function Account() {
   const { data: user } = useUser();
   const { mutate, isLoading } = useForgotPassword();
   const { mutate: createUser } = useCreateUser();
+  const { data: existingPermissions, } = useGetPermissions();
   const [sent, setSent] = useState(false);
   const [message, setMessage] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -120,6 +121,23 @@ export default function Account() {
     SetCreateNewUser(prve => !prve);
   }
 
+  const isAdmin = user?.role === "admin";
+  console.log(existingPermissions)
+  const currentUserPermissions = isAdmin
+    ? {
+      management: {
+        manager_view: true,
+        manager_time: true,
+      },
+    }
+    : existingPermissions?.find(p => p.userId === user?.userId);
+
+  const canViewHome =
+    isAdmin || currentUserPermissions?.management?.account_new === true;
+
+  const canViewManagerupdate =
+    isAdmin || currentUserPermissions?.management?.account_update === true;
+
   return (
     <div className="flex min-h-screen bg-background/50">
       <Sidebar />
@@ -177,7 +195,7 @@ export default function Account() {
                     )}
                   </div>
 
-                  {!isEmployee && (
+                  {canViewHome && (<> {!isEmployee && (
                     <div className="pt-6">
                       <Button
                         onClick={handleNewUser}
@@ -285,7 +303,7 @@ export default function Account() {
                         </form>
                       )}
                     </div>
-                  )}
+                  )}</>)}
                 </div>
               </div>
             </div>
