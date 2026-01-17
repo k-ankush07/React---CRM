@@ -248,6 +248,59 @@ export function useCreateUser() {
   });
 }
 
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId) => {
+      const res = await fetch(api.auth.deleteUser.path(userId), {
+        method: api.auth.deleteUser.method,
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete user");
+      }
+
+      return data;
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["totalStaff"]);
+    },
+  });
+}
+
+export function useEditUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, formData }) => {
+      const res = await fetch(api.auth.editUser.path(userId), {
+        method: api.auth.editUser.method,
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update user");
+
+      return data.user; // return the updated user
+    },
+
+    onSuccess: (updatedUser) => {
+      // Update the current user cache
+      queryClient.setQueryData([api.auth.me.path], updatedUser);
+
+      // Refresh staff lists
+      queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["total-staff"]);
+    },
+  });
+}
+
 export function useHoliday() {
   const queryClient = useQueryClient();
   return useMutation({

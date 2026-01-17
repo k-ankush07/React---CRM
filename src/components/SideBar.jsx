@@ -117,11 +117,20 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-border/50 bg-secondary/30 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <img
+          {user.image ? (<img
             src={user.image}
             alt="profile"
             className="w-10 h-10 rounded-full object-cover"
-          />
+          />) : (
+            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-sm font-semibold text-gray-700 border">
+              {user.fullName
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">{user.fullName}</p>
             <p className="text-xs text-muted-foreground capitalize truncate">

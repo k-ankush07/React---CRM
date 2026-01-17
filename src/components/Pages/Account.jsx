@@ -1,20 +1,34 @@
-import { useUser, useForgotPassword, useCreateUser, useGetPermissions } from "../Use-auth";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sidebar } from "../SideBar";
 import Dashboard from "../ui/Dashboard";
 import { Button } from "../ui/Button";
-import { Loader } from "lucide-react";
+import { Loader, Camera, PenLine } from "lucide-react";
 import { Input } from "../ui/Input";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useUser, useForgotPassword, useCreateUser, useGetPermissions,
+  useEditUser, useTotalStaff
+} from "../Use-auth";
 
 export default function Account() {
   const { data: user } = useUser();
   const { mutate, isLoading } = useForgotPassword();
   const { mutate: createUser } = useCreateUser();
   const { data: existingPermissions, } = useGetPermissions();
+  const { mutate: editUser, } = useEditUser();
+  const queryClient = useQueryClient();
+  const { data: totalStaff = [] } = useTotalStaff();
   const [sent, setSent] = useState(false);
   const [message, setMessage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [createNewUser, SetCreateNewUser] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editableDescription, setEditableDescription] = useState("");
+
+  useEffect(() => {
+    setEditableDescription(user?.description || "");
+  }, [user?.description]);
+
   const [formData, setFormData] = useState({
     userId: "",
     username: "",
@@ -25,7 +39,10 @@ export default function Account() {
     email: "",
     status: "active",
     image: null,
+    description: "",
   });
+
+  const textareaRef = useRef(null);
 
   const handleChangePassword = () => {
     if (!user?.email) return;
@@ -74,6 +91,7 @@ export default function Account() {
       email,
       status,
       image,
+      description,
     } = formData;
 
     if (!userId || !username || !password || !email || !role || !fullName || !title) {
@@ -90,6 +108,7 @@ export default function Account() {
     fd.append("title", title);
     fd.append("email", email);
     fd.append("status", status);
+    fd.append("description", description);
 
     if (image) {
       fd.append("image", image);
@@ -109,6 +128,7 @@ export default function Account() {
           email: "",
           status: "active",
           image: null,
+          description: ''
         });
       },
       onError: (err) => alert(err.message),
@@ -122,7 +142,6 @@ export default function Account() {
   }
 
   const isAdmin = user?.role === "admin";
-  console.log(existingPermissions)
   const currentUserPermissions = isAdmin
     ? {
       management: {
@@ -135,8 +154,73 @@ export default function Account() {
   const canViewHome =
     isAdmin || currentUserPermissions?.management?.account_new === true;
 
-  const canViewManagerupdate =
-    isAdmin || currentUserPermissions?.management?.account_update === true;
+  const [profileImage, setProfileImage] = useState(user?.image || "");
+
+  useEffect(() => {
+    setProfileImage(user?.image || "");
+  }, [user]);
+
+  const handleImageChange = (file) => {
+    const fd = new FormData();
+    fd.append("image", file);
+
+    const staffMember = totalStaff.find(staff => staff.userId === user.userId);
+
+    if (!staffMember) {
+      alert("User not found in staff list");
+      return;
+    }
+
+    editUser(
+      { userId: staffMember._id, formData: fd },
+      {
+        onSuccess: (updatedUser) => {
+          setProfileImage(updatedUser.image);
+          queryClient.setQueryData(["user"], (old) => ({
+            ...old,
+            image: updatedUser.image,
+          }));
+        },
+        onError: (err) => alert(err.message),
+      }
+    );
+  };
+
+  const handleDescriptionSave = () => {
+    const staffMember = totalStaff.find(staff => staff.userId === user.userId);
+    if (!staffMember) {
+      alert("User not found in staff list");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("description", editableDescription);
+
+    editUser(
+      { userId: staffMember._id, formData: fd },
+      {
+        onSuccess: (updatedUser) => {
+          queryClient.setQueryData(["user"], (old) => ({
+            ...old,
+            description: updatedUser.description,
+          }));
+          setIsEditingDescription(false);
+        },
+        onError: (err) => alert(err.message),
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (isEditingDescription) {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+        textarea.focus();
+      }
+    }
+  }, [isEditingDescription]);
 
   return (
     <div className="flex min-h-screen bg-background/50">
@@ -151,26 +235,75 @@ export default function Account() {
               ></div>
               <div className=" h-full overflow-y-auto p-6">
                 <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-200 max-w-lg mx-auto relative z-20">
-                  <div className="flex items-center mb-4">
-                    <div className="relative w-[100px] h-[100px] rounded-full overflow-hidden shadow-md">
-                      {user?.image ? (
+                  <div className="flex mb-4 items-start">
+                    <div className="relative w-[100px] h-[100px] rounded-full overflow-hidden shadow-md flex-shrink-0">
+                      {profileImage ? (
                         <img
-                          src={user?.image}
+                          src={profileImage}
                           alt="profile"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover object-center"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-white font-bold text-xl">
                           {user?.fullName?.[0] || "U"}
                         </div>
                       )}
+
+                      <div className="absolute right-[9px] bottom-[9px]">
+                        <label className="bg-white rounded-full p-1 shadow-md cursor-pointer hover:bg-gray-100 transition flex items-center justify-center">
+                          <Camera size={16} />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files[0]) {
+                                handleImageChange(e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
-                    <div className="ml-4">
+
+                    <div className="ml-4 flex-1 flex flex-col gap-1">
                       <p className="font-semibold text-lg text-gray-800">{user?.fullName}</p>
                       <p className="text-gray-500 text-sm">{user?.role?.toUpperCase()}</p>
+                      <div className="text-gray-500 text-sm w-full">
+                        {isEditingDescription ? (
+                          <textarea
+                            ref={textareaRef}
+                            value={editableDescription}
+                            onChange={(e) => {
+                              setEditableDescription(e.target.value);
+                              const textarea = textareaRef.current;
+                              if (textarea) {
+                                textarea.style.height = "auto";
+                                textarea.style.height = textarea.scrollHeight + "px";
+                              }
+                            }}
+                            onBlur={handleDescriptionSave}
+                            autoFocus
+                            rows={1}
+                            placeholder="add description"
+                            className="w-full text-[12px] leading-[15px] bg-transparent border-0 resize-none focus:ring-0 focus:outline-none p-1 whitespace-pre-wrap overflow-auto"
+                          />
+                        ) : (
+                          <div className="relative w-full group">
+                            <p className="rounded transition w-full whitespace-pre-wrap text-[12px] leading-[15px]">
+                              {editableDescription?.trim() ? editableDescription : "add description"}
+                            </p>
+                            <span
+                              onClick={() => setIsEditingDescription(true)}
+                              className="absolute right-[-11px] top-[-3px] -translate-y-1/2 opacity-0 group-hover:opacity-100 cursor-pointer transition"
+                            >
+                              <PenLine size={16} color="#7b7b7b" />
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-
                   <div className="space-y-1">
                     <p className="text-gray-600 text-sm">
                       <span className="font-medium">User ID:</span> {user?.userId}
@@ -284,10 +417,19 @@ export default function Account() {
                             >
                               <option value="">Select Role</option>
                               <option value="admin">Admin</option>
+                              <option value="hr">HR</option>
                               <option value="management">Manager</option>
                               <option value="employee">Employee</option>
                             </select>
                           </div>
+
+                          <Input
+                            name="description"
+                            placeholder="Description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#fbe5e9] transition duration-200"
+                          />
 
                           <Button
                             type="submit"

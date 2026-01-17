@@ -2,10 +2,22 @@ import { useState, useEffect } from "react";
 import AdminLayout from "./AdminLayout";
 import ManagementPermissions from "../ui/ManagementPermissions";
 import EmployeePermissions from "../ui/EmployeePermissions";
-import { useUser } from "../Use-auth";
+import EmployessData from "../ui/EmployessData";
+import { useUser, useTotalStaff, useDeleteUser, useEditUser, useGetPermissions } from "../Use-auth";
 
 export default function Setting() {
     const { data: user } = useUser();
+    const { data: totalStaff = [] } = useTotalStaff();
+    const { mutate: deleteUser, isLoading } = useDeleteUser();
+    const { mutate: editUser, } = useEditUser();
+    const { data: existingPermissions, refetch } = useGetPermissions();
+
+    const isAdmin = user?.role === "admin";
+    const currentUserPermissions = isAdmin
+        ? { management: { account_update: true } }
+        : existingPermissions?.find((p) => p.userId === user?.userId);
+
+    const canViewUpdate = isAdmin || currentUserPermissions?.management?.account_update;
 
     const isManager = user?.role === "management";
 
@@ -29,8 +41,8 @@ export default function Setting() {
                     </h3>
                     <div className="flex border-b border-gray-300 mb-6">
                         {!isManager && (
-                            <button
-                                className={`px-4 py-2 font-medium text-sm rounded-t-lg transition
+                            <div
+                                className={`px-4 py-2 font-medium text-sm rounded-t-lg transition cursor-pointer
                                 ${activeTab === "management"
                                         ? "bg-white border border-b-0 border-gray-300 text-blue-600"
                                         : "text-gray-600 hover:text-blue-600"
@@ -38,11 +50,11 @@ export default function Setting() {
                                 onClick={() => setActiveTab("management")}
                             >
                                 Management
-                            </button>
+                            </div>
                         )}
 
-                        <button
-                            className={`ml-2 px-4 py-2 font-medium text-sm rounded-t-lg transition
+                        <div
+                            className={`ml-2 px-4 py-2 font-medium text-sm rounded-t-lg transition cursor-pointer
                             ${activeTab === "employees"
                                     ? "bg-white border border-b-0 border-gray-300 text-blue-600"
                                     : "text-gray-600 hover:text-blue-600"
@@ -50,11 +62,23 @@ export default function Setting() {
                             onClick={() => setActiveTab("employees")}
                         >
                             Employees
-                        </button>
+                        </div>
+                        {canViewUpdate && (
+                            <div
+                                className={`ml-2 px-4 py-2 font-medium text-sm rounded-t-lg transition cursor-pointer
+                                ${activeTab === "employees_data"
+                                        ? "bg-white border border-b-0 border-gray-300 text-blue-600"
+                                        : "text-gray-600 hover:text-blue-600"
+                                    }`}
+                                onClick={() => setActiveTab("employees_data")}
+                            >
+                                Employees Data
+                            </div>
+                        )}
                     </div>
 
                     {/* Tab Content */}
-                    <div className="bg-white border border-gray-300 rounded-b-lg p-6 min-h-[300px]">
+                    <div className="bg-white border border-gray-300 rounded-b-lg p-6 min-h-[300px] rounded-lg">
 
                         {!isManager && activeTab === "management" && (
                             <ManagementPermissions adminId={user.username} />
@@ -62,6 +86,13 @@ export default function Setting() {
 
                         {activeTab === "employees" && (
                             <EmployeePermissions adminId={user.username} />
+                        )}
+                        {activeTab === "employees_data" && (
+                            <EmployessData
+                                totalStaff={totalStaff}
+                                deleteUser={deleteUser}
+                                editUser={editUser}
+                            />
                         )}
                     </div>
 

@@ -47,12 +47,21 @@ export default function Dashboard() {
                     <Upload className="w-4 h-4" />
                     Export
                 </button> */}
-                <div  className="flex items-center gap-2  hover:bg-gray-100 px-3 py-2 rounded-lg"  >
-                    <img
-                        src={user?.image}
+                <div className="flex items-center gap-2  hover:bg-gray-100 px-3 py-2 rounded-lg"  >
+                    {user.image ? (<img
+                        src={user.image}
                         alt="profile"
-                         className="w-10 h-10 rounded-full object-cover"
-                    />
+                        className="w-10 h-10 rounded-full object-cover"
+                    />) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-sm font-semibold text-gray-700 border">
+                            {user.fullName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join("")
+                                .toUpperCase()}
+                        </div>
+                    )}
                     <div className="text-sm">
                         <p className="font-semibold">{user?.fullName}</p>
                         <p className="text-xs text-gray-500 capitalize">{user?.role}</p>

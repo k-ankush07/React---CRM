@@ -84,6 +84,14 @@ export const api = {
       path: `${BASE_URL}/api/create-user`,
       method: "POST",
     },
+    deleteUser: {
+      path: (id) => `${BASE_URL}/api/delete-user/${id}`,
+      method: "DELETE",
+    },
+    editUser: {
+      path: (id) => `${BASE_URL}/api/edit-user/${id}`,
+      method: "PUT",
+    },
     holiday: {
       create: { path: `${BASE_URL}/api/holiday`, method: "POST" },
       list: { path: `${BASE_URL}/api/get/holiday`, method: "GET" },

@@ -155,26 +155,23 @@ export default function ManagementPermissions({ adminId }) {
     }, [selectedManagementId]);
 
     /* -------- TOGGLE INDIVIDUAL PERMISSIONS -------- */
-    const togglePermission = (key, children = []) => {
-        const next = { ...selected };
-
-        selectedManagementId.forEach((userId) => {
-            const userPerm = next[userId] ? { ...next[userId] } : {};
+    const togglePermissionForUser = (userId, key, children = []) => {
+        setSelected(prev => {
+            const userPerm = { ...(prev[userId] || {}) };
             const value = !userPerm[key];
             userPerm[key] = value;
 
-            const toggleChildren = (list) => {
-                list.forEach((c) => {
+            const toggleChildren = list => {
+                list.forEach(c => {
                     userPerm[c.key] = value;
                     if (c.children) toggleChildren(c.children);
                 });
             };
 
             if (children.length) toggleChildren(children);
-            next[userId] = userPerm;
-        });
 
-        setSelected(next);
+            return { ...prev, [userId]: userPerm };
+        });
     };
 
     /* -------- SELECT ALL PERMISSIONS -------- */
@@ -391,17 +388,28 @@ export default function ManagementPermissions({ adminId }) {
                         </div>
                     </div>
 
-                    {permissionsData.map((perm) => (
-                        <PermissionItem
-                            key={perm.key}
-                            permission={perm}
-                            selected={mergedSelected}
-                            toggle={togglePermission}
-                            search={search}
-                            expandedAll={expandedAll}
-                            indeterminate={indeterminate}
-                        />
+                    {selectedManagementId.map((userId) => (
+                        <div key={userId} className="mb-4 border p-3 rounded bg-white">
+                            <div className="font-semibold mb-2">
+                                {managementUsers.find(u => u.userId === userId)?.fullName}
+                            </div>
+
+                            {permissionsData.map((perm) => (
+                                <PermissionItem
+                                    key={perm.key}
+                                    permission={perm}
+                                    selected={selected[userId] || {}}
+                                    toggle={(key, children) =>
+                                        togglePermissionForUser(userId, key, children)
+                                    }
+                                    search={search}
+                                    expandedAll={expandedAll}
+                                    indeterminate={{}}
+                                />
+                            ))}
+                        </div>
                     ))}
+
                 </div>
             )}
 
