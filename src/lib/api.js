@@ -137,5 +137,35 @@ export const api = {
         method: "PUT",
       },
     },
+    category: {
+      create: {
+        path: `${BASE_URL}/api/category`,
+        method: "POST",
+      },
+      getAll: {
+        path: `${BASE_URL}/api/category`,
+        method: "GET",
+      },
+      reorder: {
+        path: `${BASE_URL}/api/category/reorder`,
+        method: "POST",
+      },
+      delete: {
+        path: (id) => `${BASE_URL}/api/category/${id}`,
+        method: "DELETE",
+      },
+      rename: {
+        path: (id) => `${BASE_URL}/api/category/${id}`,
+        method: "PUT",
+      },
+      importCSV: {
+        path: (id) => `${BASE_URL}/api/category/${id}/import-csv`,
+        method: "POST",
+      },
+      update: {
+        path: `${BASE_URL}/api/category/item/update`,
+        method: "PATCH",
+      },
+    },
   },
 };

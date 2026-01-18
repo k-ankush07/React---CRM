@@ -34,8 +34,10 @@ export default function Setting() {
     return (
         <AdminLayout>
             <div className="relative h-[90.7vh] bg-gray-50 overflow-hidden">
+                <div
+                    className="absolute w-full h-[100%] opacity-[0.1] bg-[url('https://www.hubsyntax.com/uploads/setting-ing.png')] bg-cover bg-center rounded-xl shadow-md border border-gray-200"
+                ></div>
                 <div className="relative z-[99] h-full overflow-y-auto p-6">
-
                     <h3 className="text-2xl font-semibold text-gray-800 mb-6">
                         Permissions
                     </h3>

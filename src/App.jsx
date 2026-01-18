@@ -2,7 +2,7 @@ import { Router, Route, Redirect, Switch } from "wouter";
 import Login from "./components/Pages/Login";
 import AdminDashboard from "./components/Pages/Admin/AdminDashboard";
 import ManagementDashboard from "./components/Pages/Management/ManagementDashboard";
-import Transactions from "./components/Pages/Management/Transactions";
+import Transactions from "./components/Pages/Transactions";
 import EmployeeDashboard from "./components/Pages/Employees/EmployeeDashboard";
 import Projects from "./components/Pages/Projects";
 import TimeTracker from "./components/Pages/Employees/TimeTracker";
@@ -16,6 +16,7 @@ import HeartbeatAndAutoLogout from "./components/HeartbeatAndAutoLogout";
 import HrDashBoard from "./components/Pages/Hr/HrDashBoard";
 import HolidaysAndPolicies from "./components/Pages/Holidays & Policies";
 import Setting from "./components/Pages/Setting";
+import Category from "./components/Pages/Category";
 import NotFound from "./components/Pages/not-found";
 
 function ProtectedRoute({ component: Component, allowedRoles }) {
@@ -92,7 +93,7 @@ function App() {
           <Route path="/admin">
             <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />
           </Route>
-          
+
           <Route path="/setting">
             <ProtectedRoute component={Setting} allowedRoles={["admin", "management"]} />
           </Route>
@@ -105,7 +106,13 @@ function App() {
           <Route path="/transactions">
             <ProtectedRoute
               component={Transactions}
-              allowedRoles={["management"]}
+              allowedRoles={["admin", "management"]}
+            />
+          </Route>
+          <Route path="/category">
+            <ProtectedRoute
+              component={Category}
+              allowedRoles={["admin", "management"]}
             />
           </Route>
           <Route path="/hr-dashboard">

@@ -10,10 +10,10 @@ export default function MainDashBoard() {
     const { data: holidaysData, } = useTotalHolidays();
     const { data: existingPermissions, refetch } = useGetPermissions();
     const { data: user } = useUser();
-   
+
     const isAdmin = user?.role === "admin";
     const currentUserPermissions = isAdmin
-        ? { management: { home_view: true } } 
+        ? { management: { home_view: true } }
         : existingPermissions?.find((p) => p.userId === user?.userId);
 
     const canViewHome = isAdmin || currentUserPermissions?.management?.home_view;
@@ -23,6 +23,11 @@ export default function MainDashBoard() {
         const createdAt = new Date(p.createdAt);
         return createdAt >= start && createdAt <= end;
     });
+
+    const filteredHolidays = holidaysData?.holidays?.filter((h) => {
+        const holidayDate = new Date(h.date);
+        return holidayDate >= start && holidayDate <= end;
+    }) || [];
 
     const recentRequests = [
         { sn: 1, subject: "Leave Request", date: "2025-12-20", status: "Approved" },
@@ -89,7 +94,8 @@ export default function MainDashBoard() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Holidays Roster</p>
-                            <p className="text-3xl font-bold">{canViewHome ? holidaysData?.holidays?.length : '-'}
+                            <p className="text-3xl font-bold">
+                                {canViewHome ? filteredHolidays.length : '-'}
                             </p>
                         </div>
                         <Volleyball className="w-12 h-12 opacity-80" />

@@ -1,15 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useLogout } from "./Use-auth";
 import {
-  LayoutDashboard,
-  Users,
-  CircleUserRound,
-  Clock,
-  LogOut,
-  FolderGit,
-  Tent,
-  ArrowRightLeft,
-  Settings
+  LayoutDashboard, Users, CircleUserRound, Clock, LogOut, FolderGit, Tent,
+  ArrowRightLeft, Settings, ChartBarStacked
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/Button";
@@ -37,7 +30,8 @@ export function Sidebar() {
     },
     { href: "/employees", label: "Employees", icon: Users, roles: ["admin", "management", "hr"] },
     { href: "/projects", label: "Projects", icon: FolderGit, roles: ["admin", "management"] },
-    { href: "/transactions", label: "Transactions", icon: ArrowRightLeft, roles: ["management"] },
+    { href: "/transactions", label: "Transactions", icon: ArrowRightLeft, roles: ["admin", "management"] },
+    { href: "/category", label: "Category", icon: ChartBarStacked, roles: ["admin", "management"] },
     { href: "/time-tracker", label: "Time Tracker", icon: Clock, roles: ["employee"] },
     { href: "/project", label: "Projects", icon: FolderGit, roles: ["employee"] },
     { href: "/policies", label: "Policies", icon: Tent, roles: ["admin", "management", "employee", "hr"] },

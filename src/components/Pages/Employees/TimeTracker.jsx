@@ -127,7 +127,6 @@ export default function TimeTracker() {
                 <h3 className="text-lg font-semibold mb-2">
                   Selected Date Summary
                 </h3>
-
                 {filteredEntries.length > 0 ? (
                   filteredEntries.map(entry => {
                     const formattedDate = new Date(entry.workDate)
@@ -168,8 +167,7 @@ export default function TimeTracker() {
                 <h3 className="text-lg font-semibold mt-6 mb-2">
                   All Tracked Days
                 </h3>
-
-                {userEntries.map(entry => {
+                {[...userEntries].reverse().map(entry => {
                   const formattedDate = new Date(entry.workDate)
                     .toLocaleDateString("en-GB", {
                       weekday: "long",
@@ -184,8 +182,12 @@ export default function TimeTracker() {
                     entry.workDate,
                     now
                   );
+
                   return (
-                    <div key={entry._id} className="border border-[#8bd4f4] rounded p-3 mb-2">
+                    <div
+                      key={entry._id}
+                      className="border border-[#8bd4f4] rounded p-3 mb-2"
+                    >
                       <p className="font-medium">{formattedDate}</p>
                       <p className="text-xl font-semibold text-gray-800">
                         {formatDuration(totalMs)}
@@ -193,6 +195,7 @@ export default function TimeTracker() {
                     </div>
                   );
                 })}
+
               </div>)}
             </div>
 

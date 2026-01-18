@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import ManagementLayout from "../ManagementLayout";
+import ManagementLayout from "./ManagementLayout";
 import {
     useCreateContracts, useTotalContracts, useDeleteContract,
     useUpdateContract, useGetPermissions, useUser
-} from "../../Use-auth";
-import { Button } from "../../ui/Button";
-import { Input } from "../../ui/Input";
-import SuccessToast from "../../ui/SucessToast";
-import DateRangePicker from "../../ui/DateRangePicker";
+} from "../Use-auth";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import SuccessToast from "../ui/SucessToast";
+import DateRangePicker from "../ui/DateRangePicker";
 import { CalendarRange, ChevronDown, CircleX, Trash2, Pencil } from "lucide-react";
-import { useDateRange } from "../DateRangeContext";
+import { useDateRange } from "./DateRangeContext";
 import Papa from "papaparse";
 
 const transactionTypes = [
@@ -150,7 +150,6 @@ export default function Transactions() {
 
     const canViewHome =
         isAdmin || currentUserPermissions?.management?.transaction_view === true;
-
     const canViewManagerNew =
         isAdmin || currentUserPermissions?.management?.transaction_new === true;
 

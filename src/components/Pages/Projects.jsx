@@ -1549,7 +1549,6 @@ export default function Projects() {
             setActive={setActive}
             active={active}
           />
-
           {renderProjectTasks()}
 
           {active === "calendar" &&

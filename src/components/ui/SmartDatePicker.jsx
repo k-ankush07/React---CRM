@@ -17,7 +17,6 @@ export default function SmartDatePicker({ open, setOpen, selected, setSelected, 
     if (open) {
       document.addEventListener("pointerdown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("pointerdown", handleClickOutside);
     };

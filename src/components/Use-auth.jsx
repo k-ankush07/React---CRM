@@ -687,3 +687,140 @@ export function useGetPermissions() {
     },
   });
 }
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ categoryName }) => {
+      const res = await fetch(api.auth.category.create.path, {
+        method: api.auth.category.create.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ categoryName }), 
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.message || "Failed to create category");
+      return resData;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["categories"]),
+  });
+}
+
+export function useGetCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await fetch(api.auth.category.getAll.path, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch categories");
+
+      const json = await res.json();
+      return Array.isArray(json.data) ? json.data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useReorderCategories() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderedIds) => {
+      const res = await fetch(api.auth.category.reorder.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ orderedIds }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.message || "Failed to reorder categories");
+      return resData;
+    },
+    onSuccess: () => queryClient.invalidateQueries(["categories"]),
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(api.auth.category.delete.path(id), {
+        method: api.auth.category.delete.method,
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete category");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["categories"]);
+    },
+  });
+}
+
+export function useRenameCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, categoryName }) => {
+      const res = await fetch(api.auth.category.rename.path(id), {
+        method: api.auth.category.rename.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ categoryName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to rename category");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["categories"]);
+    },
+  });
+}
+
+export function useImportCategoryCSV() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(api.auth.category.importCSV.path(id), {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["categories"]);
+    },
+  });
+}
+
+export function useUpdateCategoryItem() {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await fetch(api.auth.category.update.path, { 
+        method: api.auth.category.update.method, 
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data;
+    },
+  });
+}

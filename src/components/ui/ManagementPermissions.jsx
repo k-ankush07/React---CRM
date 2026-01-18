@@ -45,6 +45,14 @@ const permissionsData = [
             { label: "Update Account", key: "account_update" },
         ],
     },
+    {
+        label: "Category",
+        key: "category",
+        children: [
+            { label: "Category View", key: "category_view" },
+            { label: "Update Category", key: "category_update" },
+        ],
+    },
 ];
 
 /* ---------------- HELPER ---------------- */
